@@ -4,7 +4,7 @@
 param([string]$入れ先 = '')
 
 $ErrorActionPreference = 'Stop'
-$リポジトリ = 'ar-ca-na/OpenTaiko-ScoreVideo'
+$リポジトリ = 'ar-ca-na/OpenTaiko-Plus'
 
 function 待って終わる([int]$code) {
     Write-Host ''
@@ -34,7 +34,7 @@ try {
     for ($i = 1; $i -le 3; $i++) {
         try {
             $最新 = Invoke-RestMethod -Uri "https://api.github.com/repos/$リポジトリ/releases/latest" `
-                -Headers @{ 'User-Agent' = 'OpenTaiko-ScoreVideo-updater' } -TimeoutSec 30
+                -Headers @{ 'User-Agent' = 'OpenTaiko-Plus-updater' } -TimeoutSec 30
             break
         }
         catch { if ($i -eq 3) { throw }; Start-Sleep -Seconds 3 }
@@ -82,13 +82,13 @@ $答え = Read-Host $(if ($今の版) { '更新しますか？ 更新するな�
 if ($答え -ne 'y') { Write-Host 'やめました。'; 待って終わる 0 }
 
 # --- 落として展開して、入れ替え -----------------------------------------
-$作業 = Join-Path $env:TEMP ('OpenTaiko-ScoreVideo-' + [Guid]::NewGuid().ToString('N'))
+$作業 = Join-Path $env:TEMP ('OpenTaiko-Plus-' + [Guid]::NewGuid().ToString('N'))
 try {
     New-Item -ItemType Directory -Path $作業 | Out-Null
     $zipパス = Join-Path $作業 $zip.name
     Write-Host ('ダウンロード中: ' + $zip.name + ' (' + [Math]::Round($zip.size / 1MB, 1) + ' MB)')
     Invoke-WebRequest -Uri $zip.browser_download_url -OutFile $zipパス -UseBasicParsing `
-        -Headers @{ 'User-Agent' = 'OpenTaiko-ScoreVideo-updater' } -TimeoutSec 300
+        -Headers @{ 'User-Agent' = 'OpenTaiko-Plus-updater' } -TimeoutSec 300
     Expand-Archive -Path $zipパス -DestinationPath (Join-Path $作業 'x') -Force
     $apply = Get-ChildItem -Path (Join-Path $作業 'x') -Filter 'apply.ps1' -Recurse | Select-Object -First 1
     if (-not $apply) { throw 'ZIP の中に apply.ps1 がありません。' }

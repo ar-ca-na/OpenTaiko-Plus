@@ -1,5 +1,5 @@
-﻿OpenTaiko 機能追加版
-====================
+﻿OpenTaiko Plus（OpenTaiko 機能追加版）
+========================================
 
 OpenTaiko 0.5.2.1 に機能を足した、非公式の改造版です。
 本家（https://github.com/0auBSQ/OpenTaiko）とは関係ありません。
@@ -28,7 +28,7 @@ OpenTaiko 0.5.2.1 に機能を足した、非公式の改造版です。
   2. 上のアドレス欄をクリックして  cmd  と入れ、Enter（黒い窓が開きます）
   3. 次の 1 行を貼り付けて Enter
 
-curl -fL -o "%TEMP%\opentaiko_plus.ps1" https://github.com/ar-ca-na/OpenTaiko-ScoreVideo/releases/latest/download/install.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\opentaiko_plus.ps1" "%CD%"
+curl -fL -o "%TEMP%\opentaiko_plus.ps1" https://github.com/ar-ca-na/OpenTaiko-Plus/releases/latest/download/install.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\opentaiko_plus.ps1" "%CD%"
 
 どちらの方法でも、
   ・元のファイルは OpenTaiko_もとの版.exe / dll\FDK_もとの版.dll として残します。

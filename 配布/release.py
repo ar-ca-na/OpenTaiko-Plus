@@ -19,7 +19,7 @@ import os, sys, json, subprocess, zipfile, shutil, urllib.request, urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-REPO = "ar-ca-na/OpenTaiko-ScoreVideo"
+REPO = "ar-ca-na/OpenTaiko-Plus"
 REMOTE = "github"
 MSBUILD = r"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
 # --deploy の入れ先（手元のゲームフォルダ）。PC のフォルダ構成を公開しないため、git に入れないファイルから読む
@@ -57,7 +57,7 @@ def api(method, url, tok, body=None, data=None, ctype="application/json"):
     req = urllib.request.Request(url, data=data, method=method, headers={
         "Authorization": "token " + tok, "Accept": "application/vnd.github+json",
         "Content-Type": ctype + ("; charset=utf-8" if ctype == "application/json" else ""),
-        "User-Agent": "OpenTaiko-ScoreVideo-release"})
+        "User-Agent": "OpenTaiko-Plus-release"})
     try:
         with urllib.request.urlopen(req, timeout=300) as r:
             return json.loads(r.read().decode("utf-8") or "{}")
@@ -126,7 +126,7 @@ def main():
     # 4. ZIP
     out = os.path.join(HERE, "out")
     os.makedirs(out, exist_ok=True)
-    zpath = os.path.join(out, f"OpenTaiko-ScoreVideo-{tag}.zip")
+    zpath = os.path.join(out, f"OpenTaiko-Plus-{tag}.zip")
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
         def add_text(name, arc):
             b = open(os.path.join(HERE, name), "rb").read()
@@ -177,7 +177,7 @@ def main():
     # 6. Release と添付
     tok = token()
     rel = api("POST", f"https://api.github.com/repos/{REPO}/releases", tok,
-              {"tag_name": tag, "name": f"OpenTaiko 機能追加版 {tag}（非公式改造版）", "body": body})
+              {"tag_name": tag, "name": f"OpenTaiko Plus {tag}（機能追加版・非公式）", "body": body})
     up = rel["upload_url"].split("{")[0] + "?name=" + urllib.parse.quote(os.path.basename(zpath))
     api("POST", up, tok, data=open(zpath, "rb").read(), ctype="application/zip")
     up = rel["upload_url"].split("{")[0] + "?name=install.ps1"
