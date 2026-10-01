@@ -112,7 +112,9 @@ try {
         $元 = Join-Path $中身 $名前
         $行き先 = Join-Path $先 $名前
         if (-not (Test-Path $元)) { continue }
-        if ((Test-Path $行き先) -and ((Get-FileHash $元).Hash -eq (Get-FileHash $行き先).Hash)) { continue }
+        # Get-FileHash は PowerShell 7 から呼ばれると見つからないことがあるので、中身を直接比べる
+        if ((Test-Path $行き先) -and ([Convert]::ToBase64String([IO.File]::ReadAllBytes($元)) -eq
+            [Convert]::ToBase64String([IO.File]::ReadAllBytes($行き先)))) { continue }
         Copy-Item $元 $行き先 -Force
     }
 }

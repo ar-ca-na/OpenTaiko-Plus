@@ -1,4 +1,4 @@
-# OpenTaiko 譜面動画版 こうしん script
+﻿# OpenTaiko 譜面動画版 こうしん script
 # 更新する.bat から呼ばれる。GitHub の最新版を落として、適用する.bat と同じ入れ替えを行う。
 
 $ErrorActionPreference = 'Stop'
@@ -27,8 +27,15 @@ $今の版 = if (Test-Path $版ファイル) { (Get-Content $版ファイル -Ra
 # --- 最新版を調べる -----------------------------------------------------
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    $最新 = Invoke-RestMethod -Uri "https://api.github.com/repos/$リポジトリ/releases/latest" `
-        -Headers @{ 'User-Agent' = 'OpenTaiko-ScoreVideo-updater' } -TimeoutSec 30
+    # つながりにくいことがあるので 3 回まで試す
+    for ($i = 1; $i -le 3; $i++) {
+        try {
+            $最新 = Invoke-RestMethod -Uri "https://api.github.com/repos/$リポジトリ/releases/latest" `
+                -Headers @{ 'User-Agent' = 'OpenTaiko-ScoreVideo-updater' } -TimeoutSec 30
+            break
+        }
+        catch { if ($i -eq 3) { throw }; Start-Sleep -Seconds 3 }
+    }
 }
 catch {
     Write-Host '最新版を調べられませんでした。インターネットにつながっているか確かめてください。' -ForegroundColor Red
