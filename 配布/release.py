@@ -190,7 +190,7 @@ def main():
             sys.exit(f"--deploy の入れ先が分かりません。{GAME_FILE} にゲームフォルダのパスを 1 行で書いてください")
         GAME = open(GAME_FILE, encoding="utf-8-sig").read().strip()
         if subprocess.run(["tasklist", "/FI", "IMAGENAME eq OpenTaiko.exe"], capture_output=True,
-                          text=True).stdout.count("OpenTaiko.exe"):
+                          text=True, encoding="cp932", errors="replace").stdout.count("OpenTaiko.exe"):
             print("OpenTaiko が起動中なので、ゲームフォルダへの反映は飛ばしました")
         else:
             shutil.copy2(exe, os.path.join(GAME, "OpenTaiko.exe"))
