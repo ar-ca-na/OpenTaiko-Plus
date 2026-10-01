@@ -131,6 +131,22 @@ namespace TJAPlayer3
 				+ "ffmpeg.exe が必要です。" );
 			this.list項目リスト.Add( this.iSystemVideoExport );
 
+			this.iSystemExportMusicVolumeAuto = new CItemToggle( "書出 曲音量を自動", TJAPlayer3.ConfigIni.bExportMusicVolumeAuto,
+				"書き出す動画に乗せる曲の音量を\n"
+				+ "音源の大きさから自動で決めます。\n"
+				+ "音源の平均の大きさ(RMS)を\n"
+				+ "Config.ini の ExportMusicTargetDb\n"
+				+ "(既定 -9.9dB)に合わせます。\n"
+				+ "OFFにすると下の % を使います。" );
+			this.list項目リスト.Add( this.iSystemExportMusicVolumeAuto );
+
+			this.iSystemExportMusicVolume = new CItemInteger( "書出 曲音量(%)", 0, 400, TJAPlayer3.ConfigIni.nExportMusicVolume,
+				"書き出す動画に乗せる曲の音量です。\n"
+				+ "100で音源そのままの大きさ。\n"
+				+ "上の「自動」が OFF のときに\n"
+				+ "使います。" );
+			this.list項目リスト.Add( this.iSystemExportMusicVolume );
+
 			this.iSystemChartAuthoring = new CItemToggle( "作譜支援モード", TJAPlayer3.ConfigIni.bChartAuthoring,
 				"譜面を作る人向けのモードです。\n"
 				+ "演奏中に次の操作ができます。\n"
@@ -567,6 +583,10 @@ namespace TJAPlayer3
 				else if( this.list項目リスト[ this.n現在の選択項目 ] == this.iSystemVideoExport )
 				{
 					TJAPlayer3.ConfigIni.bVideoExport = this.iSystemVideoExport.bON;
+				}
+				else if( this.list項目リスト[ this.n現在の選択項目 ] == this.iSystemExportMusicVolumeAuto )
+				{
+					TJAPlayer3.ConfigIni.bExportMusicVolumeAuto = this.iSystemExportMusicVolumeAuto.bON;
 				}
 				else if( this.list項目リスト[ this.n現在の選択項目 ] == this.iSystemChartAuthoring )
 				{
@@ -1302,6 +1322,8 @@ namespace TJAPlayer3
 		private CItemToggle iSystemStageFailed;
 		private CItemToggle iSystemVSyncWait;
 		private CItemToggle iSystemVideoExport;
+		private CItemToggle iSystemExportMusicVolumeAuto;
+		private CItemInteger iSystemExportMusicVolume;
 		private CItemToggle iSystemChartAuthoring;
 		private CItemToggle iSystemHighDpi;
 		private CItemToggle iSystemAutoResultCapture;		// #25399 2011.6.9 yyagi
@@ -1457,6 +1479,8 @@ namespace TJAPlayer3
 		    TJAPlayer3.ConfigIni.SoundEffectLevel = this.iSystemSoundEffectLevel.n現在の値;
 		    TJAPlayer3.ConfigIni.VoiceLevel = this.iSystemVoiceLevel.n現在の値;
 		    TJAPlayer3.ConfigIni.SongPlaybackLevel = this.iSystemSongPlaybackLevel.n現在の値;
+		    TJAPlayer3.ConfigIni.bExportMusicVolumeAuto = this.iSystemExportMusicVolumeAuto.bON;
+		    TJAPlayer3.ConfigIni.nExportMusicVolume = this.iSystemExportMusicVolume.n現在の値;
 		    TJAPlayer3.ConfigIni.KeyboardSoundLevelIncrement = this.iSystemKeyboardSoundLevelIncrement.n現在の値;
             TJAPlayer3.ConfigIni.MusicPreTimeMs = this.MusicPreTimeMs.n現在の値;
 

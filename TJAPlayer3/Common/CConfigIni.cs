@@ -633,6 +633,12 @@ namespace TJAPlayer3
 		public bool bAVI有効;
 		/// <summary>演奏画面を動画ファイルに書き出すか。</summary>
 		public bool bVideoExport;
+		/// <summary>動画に乗せる曲の音量を、音源の大きさから自動で決めるか。</summary>
+		public bool bExportMusicVolumeAuto;
+		/// <summary>動画に乗せる曲の音量（%）。自動が OFF のときに使う。</summary>
+		public int nExportMusicVolume;
+		/// <summary>自動のとき、音源の平均の大きさ（RMS, dBFS）をここに合わせる。</summary>
+		public double dbExportMusicTargetDb;
 		/// <summary>作譜支援モード。譜面を作る人向けに、演奏中の頭出し・停止・再読込を使えるようにする。</summary>
 		public bool bChartAuthoring;
 		/// <summary>高DPI対応にするか。ONで輪郭がはっきりするが、表示は小さくなる。</summary>
@@ -1323,6 +1329,9 @@ namespace TJAPlayer3
 			this.bSTAGEFAILED有効 = true;
 			this.bAVI有効 = false;
 			this.bVideoExport = false;
+			this.bExportMusicVolumeAuto = true;
+			this.nExportMusicVolume = 100;
+			this.dbExportMusicTargetDb = -9.9;
 			this.bChartAuthoring = false;
 			this.bHighDpi = false;
 			this.bBGA有効 = true;
@@ -1741,6 +1750,16 @@ namespace TJAPlayer3
 			sw.WriteLine( "; ONにすると、曲を選んで演奏するたびに mp4 ができます。" );
 			sw.WriteLine( "; 書き出し中は画面が止まって見えますが、故障ではありません。" );
 			sw.WriteLine( "VideoExport={0}", this.bVideoExport ? 1 : 0 );
+			sw.WriteLine();
+			sw.WriteLine( "; 動画に乗せる曲の音量を自動で決める(0:OFF, 1:ON)" );
+			sw.WriteLine( "; ONにすると、音源の平均の大きさ(RMS)を ExportMusicTargetDb に合わせます。" );
+			sw.WriteLine( "ExportMusicVolumeAuto={0}", this.bExportMusicVolumeAuto ? 1 : 0 );
+			sw.WriteLine();
+			sw.WriteLine( "; 動画に乗せる曲の音量(%) 自動が OFF のときに使います。100で音源そのまま" );
+			sw.WriteLine( "ExportMusicVolume={0}", this.nExportMusicVolume );
+			sw.WriteLine();
+			sw.WriteLine( "; 自動のときに合わせる音源の平均の大きさ(dBFS)" );
+			sw.WriteLine( "ExportMusicTargetDb={0}", this.dbExportMusicTargetDb.ToString( "0.0#", System.Globalization.CultureInfo.InvariantCulture ) );
 			sw.WriteLine();
 			sw.WriteLine( "; 作譜支援モード(0:OFF, 1:ON)" );
 			sw.WriteLine( "; ONにすると演奏中に次の操作ができます。" );
@@ -2420,6 +2439,22 @@ namespace TJAPlayer3
 											else if( str3.Equals( "VideoExport" ) )
 											{
 												this.bVideoExport = C変換.bONorOFF( str4[ 0 ] );
+											}
+											else if( str3.Equals( "ExportMusicVolumeAuto" ) )
+											{
+												this.bExportMusicVolumeAuto = C変換.bONorOFF( str4[ 0 ] );
+											}
+											else if( str3.Equals( "ExportMusicVolume" ) )
+											{
+												int v;
+												if( int.TryParse( str4.Trim(), out v ) )
+													this.nExportMusicVolume = Math.Max( 0, Math.Min( 400, v ) );
+											}
+											else if( str3.Equals( "ExportMusicTargetDb" ) )
+											{
+												double v;
+												if( double.TryParse( str4.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out v ) )
+													this.dbExportMusicTargetDb = Math.Max( -60.0, Math.Min( 0.0, v ) );
 											}
 											else if( str3.Equals( "ChartAuthoringMode" ) )
 											{

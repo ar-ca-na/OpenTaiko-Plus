@@ -39,6 +39,13 @@ namespace TJAPlayer3
         public const int 指定なし = -2;
         public const int 使わない = -1;
         private static string 分からなかった指定;
+        /// <summary>--music-volume の指定。null なら Config.ini のまま。"auto" か % の数。</summary>
+        private static string 曲音量の指定;
+        /// <summary>
+        /// 動画では tja の OFFSET にこれを足した値で曲を合わせる（-0.02 なら曲が 20ms 早まる）。
+        /// --offset-adjust で変えられる。
+        /// </summary>
+        public static double OFFSET補正秒 = -0.02;
 
         private static long frame;
         private static Process ffmpeg;
@@ -107,6 +114,9 @@ namespace TJAPlayer3
                         if (n < 0) 分からなかった指定 = v;
                     }
                 }
+                else if (a == "--music-volume" && i + 1 < args.Length) 曲音量の指定 = args[++i];
+                else if (a == "--offset-adjust" && i + 1 < args.Length)
+                    double.TryParse(args[++i], NumberStyles.Float, CultureInfo.InvariantCulture, out OFFSET補正秒);
                 else if (a == "--fps" && i + 1 < args.Length) int.TryParse(args[++i], out Fps);
                 else if (a == "--crf" && i + 1 < args.Length) int.TryParse(args[++i], out Crf);
                 else if (a == "--preset" && i + 1 < args.Length) Preset = args[++i];
@@ -788,8 +798,19 @@ namespace TJAPlayer3
                 // 音源をそのまま使うので、リサンプルによる音質の劣化もない。
                 string 音源 = FindAudio();
                 bool 曲あり = 音源 != null && songStartFrame >= 0;
-                int 遅延ms = 曲あり ? (int)(songStartFrame * 1000 / Fps) : 0;
-                double 曲の音量 = CSound管理.d曲の音量;
+                // 本体は「ノーツの時刻 − 曲の開始 = −OFFSET」になるよう鳴らしている。
+                // 動画では OFFSET に OFFSET補正秒 を足した値で合わせるので、曲をそのぶん前後させる。
+                int 遅延ms = 曲あり ? (int)Math.Round(songStartFrame * 1000.0 / Fps + OFFSET補正秒 * 1000.0) : 0;
+                if (曲あり)
+                {
+                    string offset = tjaの値("OFFSET");
+                    double o;
+                    if (offset != null && double.TryParse(offset, NumberStyles.Float, CultureInfo.InvariantCulture, out o))
+                        Write("OFFSET " + o.ToString("0.###", CultureInfo.InvariantCulture) + " → "
+                            + (o + OFFSET補正秒).ToString("0.###", CultureInfo.InvariantCulture) + " として曲を合わせます");
+                }
+                double 曲の倍率 = 曲あり ? 曲の倍率を決める(音源) : 1.0;
+                double 曲の音量 = CSound管理.d曲の音量 * 曲の倍率;
 
                 string inputs = " -i \"" + videoTmpPath + "\"";
                 if (打音あり)
@@ -797,8 +818,12 @@ namespace TJAPlayer3
                 if (曲あり)
                     inputs += " -i \"" + 音源 + "\"";
 
-                // 混ぜた音を [mix] として作るフィルタ
-                string 曲のフィルタ(int n) => "[" + n + ":a]adelay=" + 遅延ms + "|" + 遅延ms
+                // 混ぜた音を [mix] として作るフィルタ。
+                // 補正で開始が 0 秒より前になるときは、音源の頭を削って合わせる。
+                string 曲のずらし = 遅延ms >= 0
+                    ? "adelay=" + 遅延ms + "|" + 遅延ms
+                    : "atrim=start=" + (-遅延ms / 1000.0).ToString("0.###", CultureInfo.InvariantCulture) + ",asetpts=PTS-STARTPTS";
+                string 曲のフィルタ(int n) => "[" + n + ":a]" + 曲のずらし
                     + ",volume=" + 曲の音量.ToString("0.####", CultureInfo.InvariantCulture);
                 string graph = null;
                 string shortest = "";
@@ -843,8 +868,10 @@ namespace TJAPlayer3
                 }
                 args += " \"" + OutPath + "\"";
                 Write("音を重ねます: 打音=" + 打音あり + " / 曲=" + 曲あり
-                    + (曲あり ? " (" + (遅延ms / 1000.0).ToString("0.000") + " 秒から, 音量 "
-                        + 曲の音量.ToString("0.###", CultureInfo.InvariantCulture) + ")" : ""));
+                    + (曲あり ? " (" + (遅延ms / 1000.0).ToString("0.000", CultureInfo.InvariantCulture) + " 秒から, 音量 "
+                        + 曲の音量.ToString("0.###", CultureInfo.InvariantCulture)
+                        + " = ゲーム内 " + CSound管理.d曲の音量.ToString("0.###", CultureInfo.InvariantCulture)
+                        + " × " + (曲の倍率 * 100).ToString("0.#", CultureInfo.InvariantCulture) + "%)" : ""));
 
                 var mux = new Process();
                 mux.StartInfo.FileName = FfmpegPath;
@@ -956,6 +983,20 @@ namespace TJAPlayer3
         {
             try
             {
+                string wave = tjaの値("WAVE");
+                if (string.IsNullOrEmpty(wave)) return null;
+                string p = Path.Combine(Path.GetDirectoryName(TjaPath), wave);
+                return File.Exists(p) ? p : null;
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>.tja の頭（最初の #START より前）にある「名前:値」の値。無ければ null。</summary>
+        private static string tjaの値(string 名前)
+        {
+            try
+            {
                 if (string.IsNullOrEmpty(TjaPath) || !File.Exists(TjaPath)) return null;
                 string[] lines;
                 try
@@ -970,16 +1011,93 @@ namespace TJAPlayer3
                 {
                     string t = line.Trim();
                     if (t.StartsWith("#START", StringComparison.OrdinalIgnoreCase)) break;
-                    if (t.StartsWith("WAVE:", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string wave = t.Substring(5).Trim();
-                        string p = Path.Combine(Path.GetDirectoryName(TjaPath), wave);
-                        return File.Exists(p) ? p : null;
-                    }
+                    if (t.StartsWith(名前 + ":", StringComparison.OrdinalIgnoreCase))
+                        return t.Substring(名前.Length + 1).Trim();
                 }
             }
             catch { }
             return null;
+        }
+
+        /// <summary>
+        /// 動画に乗せる曲の倍率（1.0 = 音源そのまま）を決める。
+        /// 自動なら音源の平均の大きさ（RMS）を目標の dB に合わせ、手動なら Config の % を使う。
+        /// --music-volume があればそちらを優先する。
+        /// </summary>
+        private static double 曲の倍率を決める(string 音源)
+        {
+            bool 自動 = TJAPlayer3.ConfigIni.bExportMusicVolumeAuto;
+            double 手動 = TJAPlayer3.ConfigIni.nExportMusicVolume / 100.0;
+            double 目標 = TJAPlayer3.ConfigIni.dbExportMusicTargetDb;
+            if (!string.IsNullOrEmpty(曲音量の指定))
+            {
+                double v;
+                string s = 曲音量の指定.Trim().TrimEnd('%');
+                if (s.Equals("auto", StringComparison.OrdinalIgnoreCase) || s == "自動")
+                    自動 = true;
+                else if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out v) && v >= 0)
+                {
+                    自動 = false;
+                    手動 = v / 100.0;
+                }
+                else
+                    Write("※ --music-volume の指定「" + 曲音量の指定 + "」が分かりません。Config.ini の設定を使います。");
+            }
+
+            if (!自動)
+            {
+                Write("曲の音量: 手動 " + (手動 * 100).ToString("0.#", CultureInfo.InvariantCulture) + "%");
+                return 手動;
+            }
+
+            double rms, peak;
+            if (!音源の大きさを測る(音源, out rms, out peak) || double.IsInfinity(rms) || double.IsNaN(rms))
+            {
+                Write("曲の音量: 自動にしましたが音源の大きさを測れませんでした。100% のまま重ねます。");
+                return 1.0;
+            }
+            double 倍率 = Math.Pow(10.0, (目標 - rms) / 20.0);
+            倍率 = Math.Max(0.05, Math.Min(10.0, 倍率));
+            Write("曲の音量: 自動 — 音源の平均 " + rms.ToString("0.0", CultureInfo.InvariantCulture)
+                + " dB / 最大 " + peak.ToString("0.0", CultureInfo.InvariantCulture)
+                + " dB → 平均を " + 目標.ToString("0.0", CultureInfo.InvariantCulture) + " dB に合わせて "
+                + (倍率 * 100).ToString("0.#", CultureInfo.InvariantCulture) + "%");
+            return 倍率;
+        }
+
+        /// <summary>音源全体の RMS と最大（どちらも dBFS）を astats で測る。</summary>
+        private static bool 音源の大きさを測る(string 音源, out double rms, out double peak)
+        {
+            rms = peak = double.NaN;
+            try
+            {
+                var p = new Process();
+                p.StartInfo.FileName = FfmpegPath;
+                p.StartInfo.Arguments = "-hide_banner -nostats -i \"" + 音源 + "\""
+                    + " -af aformat=sample_fmts=flt,astats=measure_perchannel=none:measure_overall=Peak_level+RMS_level"
+                    + " -f null -";
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.RedirectStandardError = true;
+                p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
+                p.StartInfo.CreateNoWindow = true;
+                p.Start();
+                string err = p.StandardError.ReadToEnd();
+                p.WaitForExit(120000);
+                p.Dispose();
+                var mr = System.Text.RegularExpressions.Regex.Match(err, @"RMS level dB:\s*(-?[0-9.]+|-?inf)");
+                var mp = System.Text.RegularExpressions.Regex.Match(err, @"Peak level dB:\s*(-?[0-9.]+|-?inf)");
+                if (!mr.Success || !mp.Success) return false;
+                rms = mr.Groups[1].Value.EndsWith("inf") ? double.NegativeInfinity
+                    : double.Parse(mr.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+                peak = mp.Groups[1].Value.EndsWith("inf") ? double.NegativeInfinity
+                    : double.Parse(mp.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Write("音源の大きさが測れません: " + e.Message);
+                return false;
+            }
         }
 
         /// <summary>書き出しモードで落ちたとき、原因をログに残す。</summary>
