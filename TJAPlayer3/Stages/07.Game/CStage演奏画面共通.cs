@@ -3134,10 +3134,16 @@ namespace TJAPlayer3
 
                                 int chara = Math.Max(0, Math.Min(TJAPlayer3.NamePlateConfig.data.Character[nPlayer], TJAPlayer3.Skin.Characters_Ptn - 1));
 
+                                // BPM が変わってもキャラの連番は 0 枚目に戻さず、直前のコマから続ける（速さだけ変える）
+                                int nキャラ前回_通常 = this.actChara.ctChara_Normal[nPlayer]?.n現在の値 ?? 0;
+                                int nキャラ前回_クリア = this.actChara.ctChara_Clear[nPlayer]?.n現在の値 ?? 0;
+                                int nキャラ前回_ゴーゴー = this.actChara.ctChara_GoGo[nPlayer]?.n現在の値 ?? 0;
+
                                 if (TJAPlayer3.Skin.Characters_Normal_Ptn[chara] != 0)
                                 {
                                     double dbPtn_Normal = (60.0 / TJAPlayer3.stage演奏ドラム画面.actPlayInfo.dbBPM) * TJAPlayer3.Skin.Characters_Beat_Normal[chara] / this.actChara.arモーション番号[nPlayer].Length / (((double)TJAPlayer3.ConfigIni.n演奏速度) / 20.0);
                                     this.actChara.ctChara_Normal[nPlayer] = new CCounter(0, this.actChara.arモーション番号[nPlayer].Length - 1, dbPtn_Normal, CSound管理.rc演奏用タイマ);
+                                    t連番を直前のコマから続ける(this.actChara.ctChara_Normal[nPlayer], nキャラ前回_通常);
                                 } else
                                 {
                                     this.actChara.ctChara_Normal[nPlayer] = new CCounter();
@@ -3146,6 +3152,7 @@ namespace TJAPlayer3
                                 {
                                     double dbPtn_Clear = (60.0 / TJAPlayer3.stage演奏ドラム画面.actPlayInfo.dbBPM) * TJAPlayer3.Skin.Characters_Beat_Clear[chara] / this.actChara.arクリアモーション番号[nPlayer].Length / (((double)TJAPlayer3.ConfigIni.n演奏速度) / 20.0);
                                     this.actChara.ctChara_Clear[nPlayer] = new CCounter(0, this.actChara.arクリアモーション番号[nPlayer].Length - 1, dbPtn_Clear, CSound管理.rc演奏用タイマ);
+                                    t連番を直前のコマから続ける(this.actChara.ctChara_Clear[nPlayer], nキャラ前回_クリア);
                                 }
                                 else
                                 {
@@ -3155,6 +3162,7 @@ namespace TJAPlayer3
                                 {
                                     double dbPtn_GoGo = (60.0 / TJAPlayer3.stage演奏ドラム画面.actPlayInfo.dbBPM) * TJAPlayer3.Skin.Characters_Beat_GoGo[chara] / this.actChara.arゴーゴーモーション番号[nPlayer].Length / (((double)TJAPlayer3.ConfigIni.n演奏速度) / 20.0);
                                     this.actChara.ctChara_GoGo[nPlayer] = new CCounter(0, this.actChara.arゴーゴーモーション番号[nPlayer].Length - 1, dbPtn_GoGo, CSound管理.rc演奏用タイマ);
+                                    t連番を直前のコマから続ける(this.actChara.ctChara_GoGo[nPlayer], nキャラ前回_ゴーゴー);
                                 } else
                                 {
                                     this.actChara.ctChara_GoGo[nPlayer] = new CCounter();
@@ -3838,6 +3846,18 @@ namespace TJAPlayer3
 			base.eフェーズID = CStage.Eフェーズ.共通_フェードアウト;
 			this.bPAUSE = false;
 		}
+
+        /// <summary>
+        /// BPM 変化で作り直したキャラの連番を、直前のコマから続ける。
+        /// CCounter は作った直後に「時刻 0 からの経過」を一気に進めるので、
+        /// 値だけ戻しても次の t進行LoopDb で別のコマへ飛ぶ。経過の起点もいまの時刻にそろえる。
+        /// </summary>
+        private static void t連番を直前のコマから続ける(CCounter ct, int n直前のコマ)
+        {
+            if (ct == null || ct.n終了値 < ct.n開始値) return;
+            ct.n現在の値 = (int)Math.Min(Math.Max(n直前のコマ, ct.n開始値), ct.n終了値);
+            ct.n現在の経過時間ms = CSound管理.rc演奏用タイマ.n現在時刻;
+        }
 
         /// <summary>
         /// 演奏をやめずに、tja だけ読み直す（作譜支援モードの F5）。
