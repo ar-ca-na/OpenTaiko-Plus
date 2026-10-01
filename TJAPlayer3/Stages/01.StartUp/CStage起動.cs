@@ -181,7 +181,8 @@ namespace TJAPlayer3
 				{
 					TJAPlayer3.Songs管理 = ( es != null ) ? es.Songs管理 : null;		// 最後に、曲リストを拾い上げる
 
-					if(TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.Return))
+					// 左クリックでも先へ進めるようにする（注意書きの画面）
+					if(TJAPlayer3.tマウス左クリックを取り出す() | TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.Return))
                     {
 						TJAPlayer3.Skin.sound決定音.t再生する();
 						return 1;

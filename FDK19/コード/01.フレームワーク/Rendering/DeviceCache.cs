@@ -34,7 +34,23 @@ namespace SampleFramework
 
         public Result Reset(PresentParameters presentParameters)
         {
+            // Reset するとデバイス側の状態（束ねたテクスチャ・ブレンド設定）は
+            // すべて既定値に戻る。ここで「前回設定した値」の記憶を捨てておかないと、
+            // 次の SetTexture が「前回と同じだから呼ぶ必要なし」と判断して飛ばされ、
+            // テクスチャの無い＝真っ白な矩形が描かれ続ける。
+            // ウィンドウを最大化・リサイズすると Reset が走るので、そこで必ず踏む。
+            InvalidateCache();
             return _device.Reset(presentParameters);
+        }
+
+        /// <summary>デバイスの状態を覚えている変数をすべて忘れる。</summary>
+        private void InvalidateCache()
+        {
+            _lastBlendOperation = null;
+            _lastSourceBlend = null;
+            _lastDestinationBlend = null;
+            _lastSetTextureSampler = null;
+            _lastSetTextureTexture = null;
         }
 
         public Result Clear(ClearFlags clearFlags, in Color4 color, float zdepth, int stencil)

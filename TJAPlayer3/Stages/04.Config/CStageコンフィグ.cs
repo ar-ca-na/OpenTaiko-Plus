@@ -314,7 +314,18 @@ namespace TJAPlayer3
 			// 曲データの一覧取得中は、キー入力を無効化する
 			if ( !TJAPlayer3.EnumSongs.IsEnumerating || TJAPlayer3.actEnumSongs.bコマンドでの曲データ取得 != true )
 			{
-				if ( ( TJAPlayer3.Input管理.Keyboard.bキーが押された( (int)SlimDXKeys.Key.Escape ) || TJAPlayer3.Pad.b押された( E楽器パート.DRUMS, Eパッド.FT ) ) || TJAPlayer3.Pad.b押されたGB( Eパッド.FT ) )
+				#region [ マウス操作 ]
+				// ホイールで上下、左クリックで決定、右クリックで戻る。
+				// 下の if / else if に混ぜると、先に成立した側だけが取り出して
+				// もう片方が次のコマへ持ち越されるので、ここで先に取り出しておく。
+				bool bマウス決定 = TJAPlayer3.tマウス左クリックを取り出す();
+				bool bマウス戻る = TJAPlayer3.tマウス右クリックを取り出す();
+				int nマウス段数 = TJAPlayer3.tマウスホイールの段数を取り出す();
+				for ( int i = 0; i < nマウス段数; i++ ) this.tカーソルを上へ移動する();
+				for ( int i = 0; i > nマウス段数; i-- ) this.tカーソルを下へ移動する();
+				#endregion
+
+				if ( bマウス戻る || ( TJAPlayer3.Input管理.Keyboard.bキーが押された( (int)SlimDXKeys.Key.Escape ) || TJAPlayer3.Pad.b押された( E楽器パート.DRUMS, Eパッド.FT ) ) || TJAPlayer3.Pad.b押されたGB( Eパッド.FT ) )
 				{
 					TJAPlayer3.Skin.sound取消音.t再生する();
 					if ( !this.bメニューにフォーカス中 )
@@ -337,7 +348,7 @@ namespace TJAPlayer3
 						base.eフェーズID = CStage.Eフェーズ.共通_フェードアウト;
 					}
 				}
-				else if ( ( TJAPlayer3.Pad.b押されたDGB( Eパッド.CY ) || TJAPlayer3.Pad.b押された( E楽器パート.DRUMS, Eパッド.RD ) ) || ( TJAPlayer3.Pad.b押された( E楽器パート.DRUMS, Eパッド.LC ) || ( TJAPlayer3.ConfigIni.bEnterがキー割り当てのどこにも使用されていない && TJAPlayer3.Input管理.Keyboard.bキーが押された( (int)SlimDXKeys.Key.Return ) ) ) )
+				else if ( bマウス決定 || ( TJAPlayer3.Pad.b押されたDGB( Eパッド.CY ) || TJAPlayer3.Pad.b押された( E楽器パート.DRUMS, Eパッド.RD ) ) || ( TJAPlayer3.Pad.b押された( E楽器パート.DRUMS, Eパッド.LC ) || ( TJAPlayer3.ConfigIni.bEnterがキー割り当てのどこにも使用されていない && TJAPlayer3.Input管理.Keyboard.bキーが押された( (int)SlimDXKeys.Key.Return ) ) ) )
 				{
 					if ( this.n現在のメニュー番号 == 2 )
 					{

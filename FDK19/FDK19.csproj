@@ -142,6 +142,7 @@
     <Compile Include="コード\03.サウンド\Cogg.cs" />
     <Compile Include="コード\03.サウンド\CSound.cs" />
     <Compile Include="コード\03.サウンド\CSoundDeviceASIO.cs" />
+    <Compile Include="コード\03.サウンド\CSoundDeviceExport.cs" />
     <Compile Include="コード\03.サウンド\CSoundDeviceDirectSound.cs" />
     <Compile Include="コード\03.サウンド\CSoundDeviceWASAPI.cs" />
     <Compile Include="コード\03.サウンド\CSoundTimer.cs" />

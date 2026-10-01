@@ -88,6 +88,45 @@ namespace TJAPlayer3
             }
         }
 
+		/// <summary>そのコマ、マウスで決定されたか。1P/2P 別。</summary>
+		private bool[] b今コマの決定 = new bool[2];
+
+		/// <summary>
+		/// マウスで難易度を選ぶ。ホイールで移動、左クリックで決定、右クリックで曲リストへ戻る。
+		/// Shift を押しながらだと 2P 側（player=1）になる。
+		/// </summary>
+		private void tマウスで難易度を操作する(int player)
+		{
+			this.b今コマの決定[0] = false;
+			this.b今コマの決定[1] = false;
+
+			// すでに決め終わっている側は触らない
+			if (bSelect[player] || bOption[player])
+				return;
+
+			int n段数 = TJAPlayer3.tマウスホイールの段数を取り出す();
+			for (int i = 0; i < n段数; i++)
+			{
+				TJAPlayer3.Skin.sound変更音.t再生する();
+				this.t前に移動(player);
+			}
+			for (int i = 0; i > n段数; i--)
+			{
+				TJAPlayer3.Skin.sound変更音.t再生する();
+				this.t次に移動(player);
+			}
+
+			if (TJAPlayer3.tマウス右クリックを取り出す())
+			{
+				TJAPlayer3.Skin.sound取消音.t再生する();
+				TJAPlayer3.stage選曲.act曲リスト.ctBarOpen.t開始(100, 260, 2, TJAPlayer3.Timer);
+				this.bIsDifficltSelect = false;
+				return;
+			}
+
+			this.b今コマの決定[player] = TJAPlayer3.tマウス左クリックを取り出す();
+		}
+
 		public void t前に移動(int player)
 		{
             if(n現在の選択行[player] - 1 >= 0)
@@ -193,6 +232,12 @@ namespace TJAPlayer3
 
             if (this.ctBarAnimeIn.b終了値に達した)
             {
+                #region [ マウス操作（Shift を押していると 2P 側） ]
+                // 1P/2P どちらのブロックにも入る前にここで処理する。
+                // 1P が難易度を決め終わっていても 2P はまだ選んでいる、という状態があるため。
+                this.tマウスで難易度を操作する( TJAPlayer3.bマウスは2P側() ? 1 : 0 );
+                #endregion
+
                 if (!bSelect[0] && !bOption[0])
                 {
                     if (TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RBlue) || TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.RightArrow))
@@ -205,8 +250,9 @@ namespace TJAPlayer3
                         TJAPlayer3.Skin.sound変更音.t再生する();
                         this.t前に移動(0);
                     }
-                    if (TJAPlayer3.Pad.b押されたDGB(Eパッド.Decide) || TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LRed) || TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RRed) ||
-                             (TJAPlayer3.ConfigIni.bEnterがキー割り当てのどこにも使用されていない && TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.Return)))
+                    if (this.b今コマの決定[0] |
+                            (TJAPlayer3.Pad.b押されたDGB(Eパッド.Decide) || TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LRed) || TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RRed) ||
+                             (TJAPlayer3.ConfigIni.bEnterがキー割り当てのどこにも使用されていない && TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.Return))))
                     {
                         if (n現在の選択行[0] == 0)
                         {
@@ -256,7 +302,7 @@ namespace TJAPlayer3
                         TJAPlayer3.Skin.sound変更音.t再生する();
                         this.t前に移動(1);
                     }
-                    if (TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LRed2P) || TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RRed2P))
+                    if (this.b今コマの決定[1] | (TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LRed2P) || TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RRed2P)))
                     {
                         if (n現在の選択行[1] == 0)
                         {

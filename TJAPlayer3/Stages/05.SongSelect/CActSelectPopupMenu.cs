@@ -253,6 +253,16 @@ namespace TJAPlayer3
 			{
 				if ( this.bキー入力待ち )
 				{
+					#region [ マウス操作 ]
+					// ポーズメニュー・簡易オプション・ソートメニューはこのクラスを共有しているので、
+					// ここに入れれば全部まとめてマウスで操作できる。
+					bool bマウス決定 = TJAPlayer3.tマウス左クリックを取り出す();
+					bool bマウス戻る = TJAPlayer3.tマウス右クリックを取り出す();
+					int nマウス段数 = TJAPlayer3.tマウスホイールの段数を取り出す();
+					for ( int i = 0; i < nマウス段数; i++ ) this.t前に移動();
+					for ( int i = 0; i > nマウス段数; i-- ) this.t次に移動();
+					#endregion
+
 					#region [ Shift-F1: CONFIG画面 ]
 					if ( ( TJAPlayer3.Input管理.Keyboard.bキーが押されている( (int)SlimDXKeys.Key.RightShift ) || TJAPlayer3.Input管理.Keyboard.bキーが押されている( (int)SlimDXKeys.Key.LeftShift ) ) &&
 						TJAPlayer3.Input管理.Keyboard.bキーが押された( (int)SlimDXKeys.Key.F1 ) )
@@ -263,7 +273,8 @@ namespace TJAPlayer3
 					}
 					#endregion
 					#region [ キー入力: キャンセル ]
-					else if ( ( TJAPlayer3.Input管理.Keyboard.bキーが押された( (int)SlimDXKeys.Key.Escape )
+					else if ( ( bマウス戻る
+						|| TJAPlayer3.Input管理.Keyboard.bキーが押された( (int)SlimDXKeys.Key.Escape )
 						|| TJAPlayer3.Pad.b押された( E楽器パート.DRUMS, Eパッド.FT )
 						|| TJAPlayer3.Pad.b押されたGB( Eパッド.Cancel ) )
                         && this.bEsc有効 )
@@ -290,7 +301,8 @@ namespace TJAPlayer3
 							eAction = ESortAction.Decide;
 						}
 						else if (
-							TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.Decide) // #24756 2011.4.1 yyagi: Add condition "Drum-Decide" to enable CY in Sort Menu.
+							bマウス決定
+							|| TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.Decide) // #24756 2011.4.1 yyagi: Add condition "Drum-Decide" to enable CY in Sort Menu.
 							|| TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RD)
 							|| TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LC)
 							|| TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LRed)

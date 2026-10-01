@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    この PC には .NET Framework 4.6.1 の Targeting Pack が入っていないので、
+    参照アセンブリを NuGet から取る。Developer Pack を入れなくてもビルドできる。
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -1263,6 +1263,12 @@ namespace TJAPlayer3
         private ECourse nLineCountCourseTemp = ECourse.eNormal; //現在カウント中のコースを記録。
 
         public int n参照中の難易度 = 3;
+        /// <summary>
+        /// 実際に読み込んだコース。
+        /// 頼まれたコースが tja に無いときは別のコースへ落ちるので、
+        /// 「画面に出す難易度」はこちらを見ないと食い違う。
+        /// </summary>
+        public int n実際に読み込んだ難易度 = -1;
         public int nScoreModeTmp = 99; //2017.01.28 DD
         public int[,] nScoreInit = new int[2, (int)Difficulty.Total]; //[ x, y ] x=通常or真打 y=コース
         public int[] nScoreDiff = new int[(int)Difficulty.Total]; //[y]
@@ -3154,6 +3160,8 @@ namespace TJAPlayer3
                 }
                 else
                     n読み込むコース = difficulty;
+
+                this.n実際に読み込んだ難易度 = n読み込むコース;
                 #endregion
 
                 //指定したコースの譜面の命令を消去する。

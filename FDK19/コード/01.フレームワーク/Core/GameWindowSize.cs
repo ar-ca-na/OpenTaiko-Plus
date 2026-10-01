@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace SampleFramework
 {
@@ -6,5 +6,6 @@ namespace SampleFramework
 	{
 		public const int Width = 1280;
 		public const int Height = 720;
+
 	}
 }

@@ -85,8 +85,23 @@ namespace TJAPlayer3
             else Sound_Section?.t再生を開始する();
         }
 
+        /// <summary>選曲画面を通っていないので初期化を飛ばしたか。</summary>
+        private bool bSkippedInit;
+
         public override void On活性化()
         {
+            // ここは段位認定用。選曲画面を通っていない（コンパクトモード＝
+            // 譜面を直接開いた）ときは r確定された曲 が無いので、丸ごと飛ばす。
+            if (TJAPlayer3.stage選曲 == null
+                || TJAPlayer3.stage選曲.r確定された曲 == null
+                || TJAPlayer3.stage選曲.r確定された曲.DanSongs == null)
+            {
+                this.bSkippedInit = true;
+                base.On活性化();
+                return;
+            }
+            this.bSkippedInit = false;
+
             for (int i = 0; i < CExamInfo.cMaxExam; i++)
             {
                 if(TJAPlayer3.DTX.Dan_C[i] != null) Challenge[i] = new Dan_C(TJAPlayer3.DTX.Dan_C[i]);
@@ -296,14 +311,21 @@ namespace TJAPlayer3
                 Challenge[i] = null;
             }
 
+            if (this.bSkippedInit)
+            {
+                base.On非活性化();
+                return;
+            }
+
             for (int i = 0; i < CExamInfo.cMaxExam; i++)
             {
                 Status[i].Timer_Amount = null;
                 Status[i].Timer_Gauge = null;
                 Status[i].Timer_Failed = null;
             }
-            for(int i = 0; i < IsEnded.Length; i++)
-                IsEnded[i] = false;
+            if (IsEnded != null)
+                for(int i = 0; i < IsEnded.Length; i++)
+                    IsEnded[i] = false;
 
             TJAPlayer3.t安全にDisposeする(ref this.pfExamFont);
 

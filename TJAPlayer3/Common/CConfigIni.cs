@@ -631,6 +631,12 @@ namespace TJAPlayer3
 #endif
 		public int nBGAlpha;
 		public bool bAVI有効;
+		/// <summary>演奏画面を動画ファイルに書き出すか。</summary>
+		public bool bVideoExport;
+		/// <summary>作譜支援モード。譜面を作る人向けに、演奏中の頭出し・停止・再読込を使えるようにする。</summary>
+		public bool bChartAuthoring;
+		/// <summary>高DPI対応にするか。ONで輪郭がはっきりするが、表示は小さくなる。</summary>
+		public bool bHighDpi;
 		public bool bBGA有効;
 		public bool bBGM音を発声する;
 		public STDGBVALUE<bool> bHidden;
@@ -1316,6 +1322,9 @@ namespace TJAPlayer3
 			this.eダメージレベル = Eダメージレベル.普通;
 			this.bSTAGEFAILED有効 = true;
 			this.bAVI有効 = false;
+			this.bVideoExport = false;
+			this.bChartAuthoring = false;
+			this.bHighDpi = false;
 			this.bBGA有効 = true;
 			this.n曲が選択されてからプレビュー音が鳴るまでのウェイトms = 1000;
 			this.n曲が選択されてからプレビュー画像が表示開始されるまでのウェイトms = 100;
@@ -1722,6 +1731,27 @@ namespace TJAPlayer3
 			sw.WriteLine( "StageFailed={0}", this.bSTAGEFAILED有効 ? 1 : 0 );
 			sw.WriteLine();
 			#region [ AVI/BGA ]
+			sw.WriteLine( "; 高DPI対応(0:OFF, 1:ON)" );
+			sw.WriteLine( "; ONにすると拡大率の高い画面で輪郭がはっきりします。" );
+			sw.WriteLine( "; そのぶん表示は小さくなるので、WindowWidth/Height を大きくしてください。" );
+			sw.WriteLine( "; 例: 200%の画面なら 2560 x 1440。切り替えは再起動後に効きます。" );
+			sw.WriteLine( "HighDpi={0}", this.bHighDpi ? 1 : 0 );
+			sw.WriteLine();
+			sw.WriteLine( "; 演奏画面を動画に書き出す(0:OFF, 1:ON)" );
+			sw.WriteLine( "; ONにすると、曲を選んで演奏するたびに mp4 ができます。" );
+			sw.WriteLine( "; 書き出し中は画面が止まって見えますが、故障ではありません。" );
+			sw.WriteLine( "VideoExport={0}", this.bVideoExport ? 1 : 0 );
+			sw.WriteLine();
+			sw.WriteLine( "; 作譜支援モード(0:OFF, 1:ON)" );
+			sw.WriteLine( "; ONにすると演奏中に次の操作ができます。" );
+			sw.WriteLine( ";   Space      : 再生 / 停止" );
+			sw.WriteLine( ";   左右矢印   : 停止中に1小節ずつ移動（連打でジャンプポイントへ）" );
+			sw.WriteLine( ";   PgUp/PgDn  : 停止中に TokkunSkipMeasures 小節ずつ移動" );
+			sw.WriteLine( ";   Home/End   : 停止中に最初 / 最後の小節へ" );
+			sw.WriteLine( ";   F5         : tjaファイルを読み直して最初からやり直す" );
+			sw.WriteLine( ";   F6 / F7    : 1P / 2P のオートを切り替える" );
+			sw.WriteLine( "ChartAuthoringMode={0}", this.bChartAuthoring ? 1 : 0 );
+			sw.WriteLine();
 			sw.WriteLine( "; AVIの表示(0:OFF, 1:ON)" );
 			sw.WriteLine( "AVI={0}", this.bAVI有効 ? 1 : 0 );
 			sw.WriteLine();
@@ -2386,6 +2416,18 @@ namespace TJAPlayer3
 											else if( str3.Equals( "AVI" ) )
 											{
 												this.bAVI有効 = C変換.bONorOFF( str4[ 0 ] );
+											}
+											else if( str3.Equals( "VideoExport" ) )
+											{
+												this.bVideoExport = C変換.bONorOFF( str4[ 0 ] );
+											}
+											else if( str3.Equals( "ChartAuthoringMode" ) )
+											{
+												this.bChartAuthoring = C変換.bONorOFF( str4[ 0 ] );
+											}
+											else if( str3.Equals( "HighDpi" ) )
+											{
+												this.bHighDpi = C変換.bONorOFF( str4[ 0 ] );
 											}
 											else if( str3.Equals( "BGA" ) )
 											{

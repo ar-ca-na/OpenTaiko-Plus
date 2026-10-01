@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -113,6 +113,35 @@ namespace TJAPlayer3
 			this.iSystemVSyncWait = new CItemToggle(CLangManager.LangInstance.GetString(10022), TJAPlayer3.ConfigIni.b垂直帰線待ちを行う,
 				CLangManager.LangInstance.GetString(22));
 			this.list項目リスト.Add( this.iSystemVSyncWait );
+
+			this.iSystemHighDpi = new CItemToggle( "高DPI対応", TJAPlayer3.ConfigIni.bHighDpi,
+				"拡大率の高い画面での ぼやけ を無くします。\n"
+				+ "そのぶん表示が小さくなるので、\n"
+				+ "Config.ini の WindowWidth/Height を\n"
+				+ "大きくして調整してください。\n"
+				+ "切り替えは再起動後に効きます。" );
+			this.list項目リスト.Add( this.iSystemHighDpi );
+
+			this.iSystemVideoExport = new CItemToggle( "動画を書き出す", TJAPlayer3.ConfigIni.bVideoExport,
+				"演奏画面を mp4 に書き出します。\n"
+				+ "ONにすると、曲を選んで演奏するたびに\n"
+				+ "曲のフォルダに mp4 ができます。\n"
+				+ "書き出し中は画面が止まって見えますが\n"
+				+ "故障ではありません。\n"
+				+ "ffmpeg.exe が必要です。" );
+			this.list項目リスト.Add( this.iSystemVideoExport );
+
+			this.iSystemChartAuthoring = new CItemToggle( "作譜支援モード", TJAPlayer3.ConfigIni.bChartAuthoring,
+				"譜面を作る人向けのモードです。\n"
+				+ "演奏中に次の操作ができます。\n"
+				+ "  Space    再生 / 停止\n"
+				+ "  左右矢印 停止中に1小節ずつ移動\n"
+				+ "  PgUp/PgDn 停止中にまとめて移動\n"
+				+ "  Home/End 停止中に最初 / 最後へ\n"
+				+ "  F5       tjaを読み直してやり直す\n"
+				+ "  F6 / F7  1P / 2P のオート切り替え\n"
+				+ "画面は特訓モードの見た目になります。" );
+			this.list項目リスト.Add( this.iSystemChartAuthoring );
 
 			this.iSystemAVI = new CItemToggle(CLangManager.LangInstance.GetString(10023), TJAPlayer3.ConfigIni.bAVI有効,
 				CLangManager.LangInstance.GetString(23));
@@ -534,6 +563,18 @@ namespace TJAPlayer3
 				if( this.list項目リスト[ this.n現在の選択項目 ] == this.iSystemFullscreen )
 				{
 					TJAPlayer3.app.b次のタイミングで全画面_ウィンドウ切り替えを行う = true;
+				}
+				else if( this.list項目リスト[ this.n現在の選択項目 ] == this.iSystemVideoExport )
+				{
+					TJAPlayer3.ConfigIni.bVideoExport = this.iSystemVideoExport.bON;
+				}
+				else if( this.list項目リスト[ this.n現在の選択項目 ] == this.iSystemChartAuthoring )
+				{
+					TJAPlayer3.ConfigIni.bChartAuthoring = this.iSystemChartAuthoring.bON;
+				}
+				else if( this.list項目リスト[ this.n現在の選択項目 ] == this.iSystemHighDpi )
+				{
+					TJAPlayer3.ConfigIni.bHighDpi = this.iSystemHighDpi.bON;
 				}
 				else if( this.list項目リスト[ this.n現在の選択項目 ] == this.iSystemVSyncWait )
 				{
@@ -1260,6 +1301,9 @@ namespace TJAPlayer3
 		private CItemToggle iSystemSaveScore;
 		private CItemToggle iSystemStageFailed;
 		private CItemToggle iSystemVSyncWait;
+		private CItemToggle iSystemVideoExport;
+		private CItemToggle iSystemChartAuthoring;
+		private CItemToggle iSystemHighDpi;
 		private CItemToggle iSystemAutoResultCapture;		// #25399 2011.6.9 yyagi
         private CItemToggle SendDiscordPlayingInformation;
         private CItemToggle iSystemBufferedInput;

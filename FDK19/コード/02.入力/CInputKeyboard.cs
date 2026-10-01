@@ -22,7 +22,9 @@ namespace FDK
 			try
 			{
 				this.devKeyboard = new Keyboard(directInput);
-				this.devKeyboard.SetCooperativeLevel(hWnd, CooperativeLevel.NoWinKey | CooperativeLevel.Foreground | CooperativeLevel.NonExclusive);
+				// NoWinKey を付けない。付けると Windows キーが丸ごと殺され、
+				// Win+Shift+S（切り取り＆スケッチ）などの OS のショートカットが使えなくなる。
+				this.devKeyboard.SetCooperativeLevel(hWnd, CooperativeLevel.Foreground | CooperativeLevel.NonExclusive);
 				this.devKeyboard.Properties.BufferSize = 32;
 				Trace.TraceInformation(this.devKeyboard.Information.ProductName.Trim(new char[] { '\0' }) + " を生成しました。");    // なぜか0x00のゴミが出るので削除
 				this.strDeviceName = this.devKeyboard.Information.ProductName.Trim(new char[] { '\0' });

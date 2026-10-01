@@ -393,18 +393,30 @@ namespace SampleFramework
 
 			IntPtr windowMonitor = NativeMethods.MonitorFromWindow( game.Window.Handle, WindowConstants.MONITOR_DEFAULTTOPRIMARY );
 
-			DeviceSettings newSettings = CurrentSettings.Clone();
 			int adapterOrdinal = GetAdapterOrdinal( windowMonitor );
 			if( adapterOrdinal == -1 )
 				return;
-			newSettings.Direct3D9.AdapterOrdinal = adapterOrdinal;
 
-			newSettings.BackBufferWidth = 0;								// #23510 2010.11.1 add yyagi to avoid to reset to 640x480 for the first time in XP.
-			newSettings.BackBufferHeight = 0;								//
-			newSettings.Direct3D9.PresentParameters.BackBufferWidth = GameWindowSize.Width;		//
-			newSettings.Direct3D9.PresentParameters.BackBufferHeight = GameWindowSize.Height;	//
+			// ウィンドウを別のモニタへ動かしただけなら、デバイスは作り直さない。
+			//
+			// 本来ここは「そのモニタを繋いでいるビデオカード側でデバイスを作り直す」処理だが、
+			// ビデオカードが 2 枚ある PC（内蔵 GPU ＋ 外付け GPU など）でモニタをまたぐと
+			// アダプタ番号が変わり、CanDeviceBeReset が false になって
+			// ReleaseDevice → InitializeDevice の経路に入る。
+			// この経路はデバイスを丸ごと作り直すのに、本体側が持っているテクスチャ
+			// （TJAPlayer3.Tx など）を作り直す仕組みが無いため、古いデバイスのテクスチャを
+			// 描こうとして DrawUserPrimitives が E_FAIL で落ちる。
+			//
+			// 作り直さなければ、元のビデオカードで描いた絵を Windows が別モニタへ
+			// 転送してくれる。わずかに遅くなるだけで、見た目も操作も変わらない。
+			if( adapterOrdinal != CurrentSettings.Direct3D9.AdapterOrdinal )
+			{
+				Trace.TraceInformation( "モニタが変わりました（アダプタ {0} → {1}）が、デバイスは作り直しません。",
+					CurrentSettings.Direct3D9.AdapterOrdinal, adapterOrdinal );
+			}
 
-			CreateDevice(newSettings);
+			// アダプタが同じなら、そもそも作り直す理由がない。
+			// （ドラッグを終えるたびにデバイスを Reset していた）
 		}
 
 		void game_FrameEnd( object sender, EventArgs e )

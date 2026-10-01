@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Drawing;
@@ -2335,7 +2335,8 @@ namespace TJAPlayer3
 				{
 					ChangeInputAdjustTimeInPlaying( keyboard, +1 );
 				}
-				else if ( ( base.eフェーズID == CStage.Eフェーズ.共通_通常状態 ) && ( keyboard.bキーが押された( (int)SlimDXKeys.Key.Escape ) || TJAPlayer3.Pad.b押されたGB( Eパッド.FT ) ) && !this.actPauseMenu.bIsActivePopupMenu )
+				// 演奏中の右クリックでもポーズに入れる。左クリックは打面と紛らわしいので割り当てない。
+				else if ( ( base.eフェーズID == CStage.Eフェーズ.共通_通常状態 ) && ( TJAPlayer3.tマウス右クリックを取り出す() | ( keyboard.bキーが押された( (int)SlimDXKeys.Key.Escape ) || TJAPlayer3.Pad.b押されたGB( Eパッド.FT ) ) ) && !this.actPauseMenu.bIsActivePopupMenu )
 				{	// escape (exit)
                     if (!this.actPauseMenu.bIsActivePopupMenu && this.bPAUSE == false)
                     {
@@ -2436,7 +2437,9 @@ namespace TJAPlayer3
                     else
                         TJAPlayer3.ConfigIni.bJudgeCountDisplay = false;
 				}
-				else if ( keyboard.bキーが押された( (int)SlimDXKeys.Key.F5 ) )
+				// 作譜支援モードでは F5 は「tja を読み直す」に使うので、
+				// 動画表示の切り替えには割り当てない。
+				else if ( keyboard.bキーが押された( (int)SlimDXKeys.Key.F5 ) && !TJAPlayer3.ConfigIni.bChartAuthoring )
 				{
                     switch( TJAPlayer3.ConfigIni.eClipDispType  )
                     {
@@ -2454,15 +2457,33 @@ namespace TJAPlayer3
                             break;
                     }
 				}
-                if (TJAPlayer3.ConfigIni.bTokkunMode) 
+            }
+
+            // 特訓モード（＝作譜支援モード）のキー。
+            // 停止中は上の「演奏中だけ」のかたまりに入らないので、外に出してある。
+            // 特訓モードの停止は stage演奏ドラム画面.bPAUSE を立てるため、
+            // 中に置いたままだと止めた瞬間からこれらのキーが死ぬ。
+            if (TJAPlayer3.ConfigIni.bTokkunMode && !this.actPauseMenu.bIsActivePopupMenu)
+            {
+                if (keyboard.bキーが押された((int)SlimDXKeys.Key.F6))
                 {
-                    if (keyboard.bキーが押された((int)SlimDXKeys.Key.F6))
-                    {
-                        if (TJAPlayer3.ConfigIni.b太鼓パートAutoPlay == false)
-                            TJAPlayer3.ConfigIni.b太鼓パートAutoPlay = true;
-                        else
-                            TJAPlayer3.ConfigIni.b太鼓パートAutoPlay = false;
-                    }
+                    TJAPlayer3.ConfigIni.b太鼓パートAutoPlay =
+                        !TJAPlayer3.ConfigIni.b太鼓パートAutoPlay;
+                }
+                // 作譜支援モードでは 2P のオートも切り替えられる。
+                // （もともとは DEBUG ビルドでしか使えなかった）
+                if (TJAPlayer3.ConfigIni.bChartAuthoring
+                    && keyboard.bキーが押された((int)SlimDXKeys.Key.F7))
+                {
+                    TJAPlayer3.ConfigIni.b太鼓パートAutoPlay2P =
+                        !TJAPlayer3.ConfigIni.b太鼓パートAutoPlay2P;
+                }
+                // 作譜支援モードでは tja を書き換えたあと F5 で読み直せる。
+                // 曲の頭には戻さず、いま居る小節のまま譜面だけ入れ替える。
+                if (TJAPlayer3.ConfigIni.bChartAuthoring
+                    && keyboard.bキーが押された((int)SlimDXKeys.Key.F5))
+                {
+                    this.t譜面だけ読み直す();
                 }
             }
 
@@ -2575,10 +2596,12 @@ namespace TJAPlayer3
 		        ? "Calibrating input..."
 		        : string.IsNullOrEmpty( TJAPlayer3.DTX.PANEL ) ? TJAPlayer3.DTX.TITLE: TJAPlayer3.DTX.PANEL;
 
+		    // 選曲画面を通っていない（譜面を直接開いた）ときは r確定された曲 が無い
+		    var 確定曲 = ( TJAPlayer3.stage選曲 != null ) ? TJAPlayer3.stage選曲.r確定された曲 : null;
 		    this.actPanel.SetPanelString( panelString, 
-                TJAPlayer3.stage選曲.r確定された曲.str本当のジャンル, 
+                ( 確定曲 != null ) ? 確定曲.str本当のジャンル : "", 
                 TJAPlayer3.Skin.Game_StageText, 
-                songNode: TJAPlayer3.stage選曲.r確定された曲);
+                songNode: 確定曲);
 		}
 
 
@@ -3808,9 +3831,115 @@ namespace TJAPlayer3
 		{
 			TJAPlayer3.DTX.t全チップの再生停止とミキサーからの削除();
 			this.eフェードアウト完了時の戻り値 = E演奏画面の戻り値.再読込_再演奏;
-			base.eフェーズID = CStage.Eフェーズ.演奏_再読込;
+			// もとは CStage.Eフェーズ.演奏_再読込 を立てていたが、
+			// そのフェーズを拾うコードが本体のどこにも無く、何も起きなかった。
+			// 演奏中止と同じように、フェードアウトの完了で戻り値を返させる。
+			this.actFO.tフェードアウト開始();
+			base.eフェーズID = CStage.Eフェーズ.共通_フェードアウト;
 			this.bPAUSE = false;
 		}
+
+        /// <summary>
+        /// 演奏をやめずに、tja だけ読み直す（作譜支援モードの F5）。
+        /// 譜面を書き換えて確かめるためのものなので、曲の頭へは戻さず、
+        /// いま居る小節へ戻す。曲読み込み画面がやっていることの、
+        /// 画面遷移を挟まない版。
+        /// </summary>
+        /// <summary>F5 の結果を画面に少しだけ出すための文字列。文字コンソールは ASCII のみ。</summary>
+        public static string str読み直しの知らせ;
+        public static long n読み直しの知らせを消す時刻ms;
+
+        private static void t知らせる( string s )
+        {
+            str読み直しの知らせ = s;
+            n読み直しの知らせを消す時刻ms =
+                ( TJAPlayer3.Timer != null ? TJAPlayer3.Timer.n現在時刻 : 0 ) + 3000;
+        }
+
+        public void t譜面だけ読み直す()
+        {
+            var 旧 = TJAPlayer3.DTX;
+            if ( 旧 == null ) return;
+
+            string str = 旧.strファイル名の絶対パス;
+            if ( string.IsNullOrEmpty( str ) || !System.IO.File.Exists( str ) )
+            {
+                Trace.TraceWarning( "譜面のファイルが見つからないので読み直せません。({0})", str ?? "(なし)" );
+                t知らせる( "RELOAD FAILED - file not found" );
+                return;
+            }
+
+            // いまの小節と、止まっていたかどうかを覚えておく。読み直したあとここへ戻す。
+            int 小節 = 0;
+            if ( TJAPlayer3.stage演奏ドラム画面 != null
+                && TJAPlayer3.stage演奏ドラム画面.actPlayInfo != null )
+                小節 = TJAPlayer3.stage演奏ドラム画面.actPlayInfo.NowMeasure[ 0 ];
+            if ( 小節 < 0 ) 小節 = 0;
+            bool 止まっていた = TJAPlayer3.stage演奏ドラム画面 != null
+                && TJAPlayer3.stage演奏ドラム画面.actTokkun != null
+                && TJAPlayer3.stage演奏ドラム画面.actTokkun.b停止中;
+
+            try
+            {
+                bool 二人 = TJAPlayer3.ConfigIni.nPlayerCount == 2;
+
+                旧.t全チップの再生停止とミキサーからの削除();
+                if ( 旧.b活性化してる ) 旧.On非活性化();
+                if ( 二人 && TJAPlayer3.DTX_2P != null && TJAPlayer3.DTX_2P != 旧 )
+                {
+                    TJAPlayer3.DTX_2P.t全チップの再生停止とミキサーからの削除();
+                    if ( TJAPlayer3.DTX_2P.b活性化してる ) TJAPlayer3.DTX_2P.On非活性化();
+                }
+
+                var ini = new CScoreIni( str + ".score.ini" );
+                TJAPlayer3.DTX = new CDTX( str, false, 1.0, ini.stファイル.BGMAdjust, 0, 0, true,
+                    TJAPlayer3.stage選曲.n確定された曲の難易度[ 0 ] );
+                if ( 二人 )
+                    TJAPlayer3.DTX_2P = new CDTX( str, false, 1.0, ini.stファイル.BGMAdjust, 0, 1, true,
+                        TJAPlayer3.stage選曲.n確定された曲の難易度[ 1 ] );
+
+                COfflineExport.実際に読み込んだ難易度に合わせる();
+
+                // 音を読む。曲読み込み画面と同じで、使われている WAV だけ。
+                foreach ( var kv in TJAPlayer3.DTX.listWAV )
+                    if ( kv.Value.listこのWAVを使用するチャンネル番号の集合.Count > 0 )
+                        TJAPlayer3.DTX.tWAVの読み込み( kv.Value );
+
+                if ( TJAPlayer3.ConfigIni.bDynamicBassMixerManagement )
+                    TJAPlayer3.DTX.PlanToAddMixerChannel();
+                TJAPlayer3.DTX.t太鼓チップのランダム化( TJAPlayer3.ConfigIni.eRandom.Taiko );
+                if ( TJAPlayer3.ConfigIni.bAVI有効 )
+                    TJAPlayer3.DTX.tAVIの読み込み();
+
+                // 画面のほうを作り直して、同じ小節へ戻す。
+                this.actAVI.tReset();
+                this.actPanel.t歌詞テクスチャを削除する();
+                this.t数値の初期化( true, true );
+                TJAPlayer3.stage演奏ドラム画面.On活性化();
+                for ( int i = 0; i < TJAPlayer3.ConfigIni.nPlayerCount; i++ )
+                    this.chip現在処理中の連打チップ[ i ] = null;
+
+                this.t演奏位置の変更( 小節, 0 );
+                if ( 二人 ) this.t演奏位置の変更( 小節, 1 );
+                TJAPlayer3.stage演奏ドラム画面.actPlayInfo.NowMeasure[ 0 ] = 小節;
+
+                var 特訓 = TJAPlayer3.stage演奏ドラム画面.actTokkun;
+                if ( 特訓 != null )
+                {
+                    特訓.n現在の小節線 = 小節;
+                    // 止めていたなら止めたまま戻す。
+                    if ( 止まっていた ) 特訓.t演奏を停止する();
+                    else this.bPAUSE = false;
+                }
+                Trace.TraceInformation( "譜面を読み直しました。({0} 小節目のまま)", 小節 );
+                t知らせる( "RELOADED (bar " + 小節 + ")" );
+            }
+            catch ( Exception e )
+            {
+                Trace.TraceError( "譜面の読み直しに失敗しました。{0}", e.Message );
+                t知らせる( "RELOAD FAILED - see TJAPlayer3.log" );
+            }
+        }
 
         public void t演奏やりなおし()
         {

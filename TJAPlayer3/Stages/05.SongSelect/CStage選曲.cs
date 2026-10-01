@@ -253,6 +253,9 @@ namespace TJAPlayer3
                 n確定された曲の難易度 = new int[2];
                 this.eフェードアウト完了時の戻り値 = E戻り値.継続;
 
+                // 他の画面でのクリックが持ち越されないよう捨てる
+                TJAPlayer3.tマウス状態を捨てる();
+
                 // BGM played
                 this.bBGM再生済み = false;
                 
@@ -527,8 +530,6 @@ namespace TJAPlayer3
                 if (this.ctDiffSelect移動待ち != null)
                     this.ctDiffSelect移動待ち.t進行();
 
-              
-
                 // キー入力
                 if (base.eフェーズID == CStage.Eフェーズ.共通_通常状態
                     && TJAPlayer3.act現在入力を占有中のプラグイン == null)
@@ -548,7 +549,8 @@ namespace TJAPlayer3
                     if (!this.actSortSongs.bIsActivePopupMenu && !this.actQuickConfig.bIsActivePopupMenu && !this.act難易度選択画面.bIsDifficltSelect)
                     {
                         #region [ ESC ]
-                        if (TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.Escape) && (this.act曲リスト.r現在選択中の曲 != null))// && (  ) ) )
+                        // 右クリックも ESC と同じ「1つ戻る」にする
+                        if ((TJAPlayer3.tマウス右クリックを取り出す() | TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.Escape)) && (this.act曲リスト.r現在選択中の曲 != null))// && (  ) ) )
                             if (this.act曲リスト.r現在選択中の曲.r親ノード == null)
                             {   // [ESC]
                                 this.actPresound.tサウンド停止();
@@ -666,7 +668,12 @@ namespace TJAPlayer3
                                 if (!this.bスクロール中)
                                 {
                                     #region [ Decide ]
-                                    if ((TJAPlayer3.Pad.b押されたDGB(Eパッド.Decide) || (TJAPlayer3.Pad.b押されたDGB(Eパッド.LRed) || TJAPlayer3.Pad.b押されたDGB(Eパッド.RRed)) ||
+                                    // 左クリックも決定として扱う。ここを通すことで
+                                    // BOX（フォルダ）や BACKBOX も正しく処理される。
+                                    // t曲を選択する() を直接呼ぶと、譜面を持たない
+                                    // ノードでも曲読み込みへ進んでしまい落ちる。
+                                    if (TJAPlayer3.tマウス左クリックを取り出す() |
+                                    (TJAPlayer3.Pad.b押されたDGB(Eパッド.Decide) || (TJAPlayer3.Pad.b押されたDGB(Eパッド.LRed) || TJAPlayer3.Pad.b押されたDGB(Eパッド.RRed)) ||
                                     ((TJAPlayer3.ConfigIni.bEnterがキー割り当てのどこにも使用されていない && TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.Return)))))
                                     {
 
@@ -748,6 +755,12 @@ namespace TJAPlayer3
                                 #region [ Up ]
                                 if (!this.bスクロール中)
                                 {
+                                    #region [ ホイールで曲送り ]
+                                    int n段数 = TJAPlayer3.tマウスホイールの段数を取り出す();
+                                    for ( int i = 0; i < n段数; i++ ) this.tカーソルを上へ移動する();
+                                    for ( int i = 0; i > n段数; i-- ) this.tカーソルを下へ移動する();
+                                    #endregion
+
                                     this.ctキー反復用.Up.tキー反復(TJAPlayer3.Input管理.Keyboard.bキーが押されている((int)SlimDXKeys.Key.LeftArrow), new CCounter.DGキー処理(this.tカーソルを上へ移動する));
                                     //this.ctキー反復用.Up.tキー反復( CDTXMania.Input管理.Keyboard.bキーが押されている( (int) SlimDXKeys.Key.UpArrow ) || CDTXMania.Input管理.Keyboard.bキーが押されている( (int) SlimDXKeys.Key.LeftArrow ), new CCounter.DGキー処理( this.tカーソルを上へ移動する ) );
                                     if (TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LBlue))
@@ -1061,6 +1074,7 @@ namespace TJAPlayer3
         private CActSelectステータスパネル actステータスパネル;
         public CActSelect演奏履歴パネル act演奏履歴パネル;
         public CActSelect曲リスト act曲リスト;
+
         private CActSelectShowCurrentPosition actShowCurrentPosition;
         public CActSelect難易度選択画面 act難易度選択画面;
         public CActPlayOption actPlayOption;

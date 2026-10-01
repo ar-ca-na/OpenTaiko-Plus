@@ -117,6 +117,17 @@ namespace TJAPlayer3
 
 				TJAPlayer3.act文字コンソール.tPrint(0, 0, C文字コンソール.Eフォント種別.白, "TRAINING MODE (BETA)");
 
+				// F5 で読み直したかどうかを、その場で分かるようにする。
+				// 譜面を書き換えながら使うので、効いたかどうかが見えないと困る。
+				if (!string.IsNullOrEmpty(CStage演奏画面共通.str読み直しの知らせ))
+				{
+					if (TJAPlayer3.Timer.n現在時刻 < CStage演奏画面共通.n読み直しの知らせを消す時刻ms)
+						TJAPlayer3.act文字コンソール.tPrint(0, 16, C文字コンソール.Eフォント種別.白,
+							CStage演奏画面共通.str読み直しの知らせ);
+					else
+						CStage演奏画面共通.str読み直しの知らせ = null;
+				}
+
 				if (TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.Space)|| TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RRed2P))
 				{
 					if (this.b特訓PAUSE)
@@ -438,7 +449,11 @@ namespace TJAPlayer3
 			int n演奏開始Chip = TJAPlayer3.stage演奏ドラム画面.n現在のトップChip;
 			int finalStartBar;
 
-			finalStartBar = this.n現在の小節線 - 2;
+			// 特訓モードは「少し戻ってから」再開する作りだった。
+			// 戻したぶんの小節はノーツを消してから流すので、
+			// 譜面を作っているときは「無音の空白が2小節入った」ように見える。
+			// 作譜支援モードのときは止めた場所そのものから再開する。
+			finalStartBar = this.n現在の小節線 - (TJAPlayer3.ConfigIni.bChartAuthoring ? 0 : 2);
 			if (finalStartBar < 0) finalStartBar = 0;
 
 			TJAPlayer3.stage演奏ドラム画面.t演奏位置の変更(finalStartBar, 0);
@@ -548,6 +563,8 @@ namespace TJAPlayer3
 
 		public int n現在の小節線;
 		public int n小節の総数;
+		/// <summary>いま停止中か。譜面を読み直すときに、その状態を保つために見る。</summary>
+		public bool b停止中 { get { return this.b特訓PAUSE; } }
 
 		#region [private]
 		private long nスクロール前ms;

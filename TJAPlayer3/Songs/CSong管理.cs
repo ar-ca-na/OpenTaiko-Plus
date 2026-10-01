@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -1785,7 +1785,10 @@ Debug.WriteLine( dBPM + ":" + c曲リストノード.strタイトル );
 				score.譜面情報.演奏回数.Drums = ini.stファイル.PlayCountDrums;
 				score.譜面情報.演奏回数.Guitar = ini.stファイル.PlayCountGuitar;
 				score.譜面情報.演奏回数.Bass = ini.stファイル.PlayCountBass;
-				for( int i = 0; i < (int)Difficulty.Total; i++ )
+				// 演奏履歴は 5 行しかないのに、難易度の数（7）だけ回していたので
+				// 必ず IndexOutOfRangeException になり、毎回ここで例外を投げていた。
+				// 例外は握りつぶされていたが、ログが毎回汚れていた。
+				for( int i = 0; i < ini.stファイル.History.Length && i < 5; i++ )
 					score.譜面情報.演奏履歴[ i ] = ini.stファイル.History[ i ];
 			}
 			catch (Exception e)

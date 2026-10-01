@@ -60,9 +60,81 @@ namespace TJAPlayer3
 		#endregion
 
 		[STAThread] 
+		#region [ 高DPI対応 ]
+		[System.Runtime.InteropServices.DllImport( "user32.dll" )]
+		private static extern bool SetProcessDpiAwarenessContext( IntPtr value );
+		[System.Runtime.InteropServices.DllImport( "user32.dll" )]
+		private static extern bool SetProcessDPIAware();
+
+		/// <summary>
+		/// DPI の宣言はウィンドウを作る前に済ませないと効かない。
+		/// Config はまだ読まれていないので、Config.ini を直接見る。
+		/// </summary>
+		private static void tApplyHighDpi()
+		{
+			try
+			{
+				string ini = Path.Combine(
+					Path.GetDirectoryName( Application.ExecutablePath ), "Config.ini" );
+				if ( !File.Exists( ini ) ) return;
+
+				bool want = false;
+				foreach ( string line in File.ReadAllLines( ini, Encoding.GetEncoding( 932 ) ) )
+				{
+					string t = line.Trim();
+					if ( t.StartsWith( "HighDpi=", StringComparison.OrdinalIgnoreCase ) )
+					{
+						want = ( t.Substring( 8 ).Trim() != "0" );
+						break;
+					}
+				}
+				if ( !want ) return;
+
+				// Windows 10 1703 以降なら PerMonitorV2、それより前は従来の宣言
+				try
+				{
+					if ( SetProcessDpiAwarenessContext( new IntPtr( -4 ) ) ) return;
+				}
+				catch ( EntryPointNotFoundException ) { }
+				SetProcessDPIAware();
+			}
+			catch { }
+		}
+		#endregion
+
+		[System.Runtime.InteropServices.DllImport( "user32.dll" )]
+		private static extern short GetAsyncKeyState( int vKey );
+
+		/// <summary>
+		/// Shift を押しながら起動したか。全画面のまま起動できなくなったときの逃げ道。
+		/// </summary>
+		internal static bool bShiftHeldAtStartup;
+
 		static void Main()
 		{
-			mutex二重起動防止用 = new Mutex( false, "DTXManiaMutex" );
+			bShiftHeldAtStartup = ( ( GetAsyncKeyState( 0x10 ) & 0x8000 ) != 0 );	// VK_SHIFT
+			tApplyHighDpi();
+
+			// 書き出しモード（--export）なら、選曲画面を通さずその譜面を直接開く。
+			// 二重起動チェックも別枠にして、普段遊んでいる本体と同時に動かせるようにする。
+			COfflineExport.ParseCommandLine();
+			if ( COfflineExport.Enabled )
+			{
+				TJAPlayer3.bコンパクトモード = true;
+				TJAPlayer3.strコンパクトモードファイル = COfflineExport.TjaPath;
+
+				// 音を鳴らさず、書き出し側が 1 コマぶんずつ引き抜く専用デバイスに切り替える
+				CSound管理.b書き出しモード = true;
+
+				// 落ちた原因を残す（書き出しモードのときだけ）
+				AppDomain.CurrentDomain.UnhandledException += ( s2, e2 ) =>
+					COfflineExport.LogFatal( e2.ExceptionObject as Exception );
+				Application.ThreadException += ( s2, e2 ) =>
+					COfflineExport.LogFatal( e2.Exception );
+			}
+
+			mutex二重起動防止用 = new Mutex( false,
+				COfflineExport.Enabled ? "DTXManiaMutexOfflineExport" : "DTXManiaMutex" );
 
 			if ( mutex二重起動防止用.WaitOne( 0, false ) )
 			{

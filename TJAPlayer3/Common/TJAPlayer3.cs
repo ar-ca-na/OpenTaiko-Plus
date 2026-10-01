@@ -65,7 +65,7 @@ namespace TJAPlayer3
 		public static bool bコンパクトモード
 		{
 			get;
-			private set;
+			internal set;
 		}
 		public static CConfigIni ConfigIni
 		{
@@ -328,7 +328,7 @@ namespace TJAPlayer3
 		public static string strコンパクトモードファイル
 		{ 
 			get; 
-			private set;
+			internal set;
 		}
 		public static CTimer Timer
 		{
@@ -400,6 +400,98 @@ namespace TJAPlayer3
 		
 
 		// メソッド
+
+		#region [ マウス操作 ]
+		// 本体はキーボードとパッドしか見ていないので、ウィンドウから来た
+		// マウスイベントをここに溜める。
+		//
+		// 溜めた生の値は毎コマ 1 回だけ「そのコマぶん」へ移し替え（tマウス入力を毎コマ取り込む）、
+		// 各画面はそちらを取り出す。こうしないと、複数の画面が同じコマに
+		// 取り出そうとしたとき、先に読んだ側が食ってしまって後ろへ届かない。
+
+		private static int nホイール生;
+		private static bool b左クリック生;
+		private static bool b右クリック生;
+		private static Point ptマウス位置;
+
+		private static int nホイール今コマ;
+		private static bool b左クリック今コマ;
+		private static bool b右クリック今コマ;
+
+		/// <summary>溜まった生の入力を「そのコマぶん」に移す。Draw の頭で 1 回だけ呼ぶ。</summary>
+		internal static void tマウス入力を毎コマ取り込む()
+		{
+			nホイール今コマ = nホイール生;
+			b左クリック今コマ = b左クリック生;
+			b右クリック今コマ = b右クリック生;
+			nホイール生 = 0;
+			b左クリック生 = false;
+			b右クリック生 = false;
+		}
+
+		/// <summary>ホイールの回転量を取り出す（取り出すと 0 に戻る）。120 で 1 段。</summary>
+		internal static int tマウスホイールを取り出す()
+		{
+			int v = nホイール今コマ;
+			nホイール今コマ = 0;
+			return v;
+		}
+
+		/// <summary>ホイールを段数で取り出す。行き過ぎないよう 8 段までに抑える。</summary>
+		internal static int tマウスホイールの段数を取り出す()
+		{
+			int n = tマウスホイールを取り出す() / 120;
+			if ( n > 8 ) n = 8;
+			if ( n < -8 ) n = -8;
+			return n;
+		}
+
+		/// <summary>左クリックされたかを取り出す（取り出すと false に戻る）。</summary>
+		internal static bool tマウス左クリックを取り出す()
+		{
+			bool v = b左クリック今コマ;
+			b左クリック今コマ = false;
+			return v;
+		}
+
+		/// <summary>右クリックされたかを取り出す（取り出すと false に戻る）。</summary>
+		internal static bool tマウス右クリックを取り出す()
+		{
+			bool v = b右クリック今コマ;
+			b右クリック今コマ = false;
+			return v;
+		}
+
+		/// <summary>いちばん最後にクリックされた位置（ウィンドウ内の座標）。</summary>
+		internal static Point ptマウスの位置 { get { return ptマウス位置; } }
+
+		/// <summary>Shift を押しているか。2P 側の操作かどうかの判定に使う。</summary>
+		internal static bool bマウスは2P側()
+		{
+			if ( ConfigIni == null || ConfigIni.nPlayerCount < 2 || Input管理 == null )
+				return false;
+			return Input管理.Keyboard.bキーが押されている( (int)SlimDXKeys.Key.LeftShift )
+				|| Input管理.Keyboard.bキーが押されている( (int)SlimDXKeys.Key.RightShift );
+		}
+
+		/// <summary>溜まっているマウス操作を捨てる。
+		/// 画面が切り替わったときに呼ぶ。呼ばないと、別の画面でのクリックが
+		/// 戻ってきた瞬間に効いてしまう。</summary>
+		internal static void tマウス状態を捨てる()
+		{
+			nホイール生 = 0;
+			b左クリック生 = false;
+			b右クリック生 = false;
+			nホイール今コマ = 0;
+			b左クリック今コマ = false;
+			b右クリック今コマ = false;
+		}
+
+		private void Window_MouseWheel( object sender, MouseEventArgs e )
+		{
+			nホイール生 += e.Delta;
+		}
+		#endregion
 
 		public void t全画面_ウィンドウモード切り替え()
 		{
@@ -596,9 +688,18 @@ namespace TJAPlayer3
 		protected override void Draw( GameTime gameTime )
 		{
 			// Sound管理?.t再生中の処理をする();
-            Timer?.t更新();
-            CSound管理.rc演奏用タイマ?.t更新();
+            // 書き出しモードでは実時間を見ず、コマ番号で時刻を決める
+            if ( COfflineExport.ShouldFixTime() )
+            {
+                COfflineExport.AdvanceTime();
+            }
+            else
+            {
+                Timer?.t更新();
+                CSound管理.rc演奏用タイマ?.t更新();
+            }
             Input管理?.tポーリング( this.bApplicationActive, TJAPlayer3.ConfigIni.bバッファ入力を行う );
+            tマウス入力を毎コマ取り込む();
             FPS?.tカウンタ更新();
 
 			if( this.Device == null )
@@ -609,7 +710,7 @@ namespace TJAPlayer3
 
 			// #xxxxx 2013.4.8 yyagi; sleepの挿入位置を、EndScnene～Present間から、BeginScene前に移動。描画遅延を小さくするため。
 			#region [ スリープ ]
-			if ( ConfigIni.nフレーム毎スリープms >= 0 )			// #xxxxx 2011.11.27 yyagi
+			if ( ConfigIni.nフレーム毎スリープms >= 0 && !COfflineExport.Enabled )			// #xxxxx 2011.11.27 yyagi
 			{
 				Thread.Sleep( ConfigIni.nフレーム毎スリープms );
 			}
@@ -1521,6 +1622,17 @@ for (int i = 0; i < 3; i++) {
 								#endregion
 
 								r現在のステージ.On非活性化();
+
+								// 書き出し中なら、ここで動画を閉じる。
+								// --export で起動したときは本体ごと終わる。
+								// Config のトグルから使っているときは結果画面へ進む。
+								COfflineExport.Finish( "演奏が終わりました" );
+								if ( COfflineExport.Enabled )
+								{
+									base.Exit();
+									break;
+								}
+
 								Trace.TraceInformation( "----------------------" );
 								Trace.TraceInformation( "■ 結果" );
 								stage結果.st演奏記録.Drums = c演奏記録_Drums;
@@ -1647,6 +1759,9 @@ for (int i = 0; i < 3; i++) {
 				}
 			}
 			this.Device.EndScene();			// Present()は game.csのOnFrameEnd()に登録された、GraphicsDeviceManager.game_FrameEnd() 内で実行されるので不要
+
+			// 書き出しモードなら、いま描き終えた絵をそのまま ffmpeg へ渡す
+			COfflineExport.Capture();
 											// (つまり、Present()は、Draw()完了後に実行される)
 #if !GPUFlushAfterPresent
 			actFlushGPU?.On進行描画();		// Flush GPU	// EndScene()～Present()間 (つまりVSync前) でFlush実行
@@ -1673,7 +1788,7 @@ for (int i = 0; i < 3; i++) {
 				bool bIsMaximized = this.Window.IsMaximized;											// #23510 2010.11.3 yyagi: to backup current window mode before changing VSyncWait
 				currentClientSize = this.Window.ClientSize;												// #23510 2010.11.3 yyagi: to backup current window size before changing VSyncWait
 				DeviceSettings currentSettings = app.GraphicsDeviceManager.CurrentSettings;
-				currentSettings.EnableVSync = ConfigIni.b垂直帰線待ちを行う;
+				currentSettings.EnableVSync = ConfigIni.b垂直帰線待ちを行う && !COfflineExport.Enabled;
 				app.GraphicsDeviceManager.ChangeDevice( currentSettings );
 				this.b次のタイミングで垂直帰線同期切り替えを行う = false;
 				base.Window.ClientSize = new Size(currentClientSize.Width, currentClientSize.Height);	// #23510 2010.11.3 yyagi: to resume window size after changing VSyncWait
@@ -1984,6 +2099,17 @@ for (int i = 0; i < 3; i++) {
 					Trace.TraceError( "例外が発生しましたが処理を継続します。 (b8d93255-bbe4-4ca3-8264-7ee5175b19f3)" );
 				}
 			}
+			// --export のときは、動画に向かない設定を上書きする。
+			COfflineExport.書き出し用の設定にする();
+
+			// Shift を押しながら起動したときは、設定が全画面でもウィンドウで立ち上げる。
+			// 全画面のまま操作できなくなったときに、ここから抜けられるようにするため。
+			if ( Program.bShiftHeldAtStartup && !ConfigIni.bウィンドウモード )
+			{
+				ConfigIni.bウィンドウモード = true;
+				Trace.TraceInformation( "Shift 起動のため、ウィンドウモードで起動します。" );
+			}
+
 			this.Window.EnableSystemMenu = TJAPlayer3.ConfigIni.bIsEnabledSystemMenu;	// #28200 2011.5.1 yyagi
 			// 2012.8.22 Config.iniが無いときに初期値が適用されるよう、この設定行をifブロック外に移動
 
@@ -2050,6 +2176,7 @@ for (int i = 0; i < 3; i++) {
             base.Window.Location = new Point(ConfigIni.n初期ウィンドウ開始位置X, ConfigIni.n初期ウィンドウ開始位置Y);   // #30675 2013.02.04 ikanick add
 
 			base.Window.ClientSize = new Size(ConfigIni.nウインドウwidth, ConfigIni.nウインドウheight);	// #34510 yyagi 2010.10.31 to change window size got from Config.ini
+
 #if !WindowedFullscreen
 			if (!ConfigIni.bウィンドウモード)						// #23510 2010.11.02 yyagi: add; to recover window size in case bootup with fullscreen mode
 			{														// #30666 2013.02.02 yyagi: currentClientSize should be always made
@@ -2065,6 +2192,7 @@ for (int i = 0; i < 3; i++) {
 			base.Window.Icon = global::TJAPlayer3.Properties.Resources.tjap3;
 			base.Window.KeyDown += new KeyEventHandler( this.Window_KeyDown );
 			base.Window.MouseUp +=new MouseEventHandler( this.Window_MouseUp);
+			base.Window.MouseWheel += new MouseEventHandler( this.Window_MouseWheel );
 			base.Window.MouseDoubleClick += new MouseEventHandler(this.Window_MouseDoubleClick);	// #23510 2010.11.13 yyagi: to go fullscreen mode
 			base.Window.ResizeEnd += new EventHandler(this.Window_ResizeEnd);						// #23510 2010.11.20 yyagi: to set resized window size in Config.ini
 			base.Window.ApplicationActivated += new EventHandler(this.Window_ApplicationActivated);
@@ -2084,7 +2212,8 @@ for (int i = 0; i < 3; i++) {
 			settings.BackBufferWidth = SampleFramework.GameWindowSize.Width;
 			settings.BackBufferHeight = SampleFramework.GameWindowSize.Height;
 //			settings.BackBufferCount = 3;
-			settings.EnableVSync = ConfigIni.b垂直帰線待ちを行う;
+			// 書き出しモードは画面を見せる必要がないので、垂直同期で待たない。
+			settings.EnableVSync = ConfigIni.b垂直帰線待ちを行う && !COfflineExport.Enabled;
 //			settings.BackBufferFormat = Format.A8R8G8B8;
 //			settings.MultisampleType = MultisampleType.FourSamples;
 //			settings.MultisampleQuality = 4;
@@ -2467,6 +2596,9 @@ for (int i = 0; i < 3; i++) {
 
 			if ( TJAPlayer3.bコンパクトモード )
 			{
+				// 起動ステージを飛ばすので、そこで行われるテクスチャ読み込みをここで済ませる。
+				// これをしないと演奏画面が Tx.??? を null 参照して落ちる。
+				TJAPlayer3.Tx.LoadTexture();
 				r現在のステージ = stage曲読み込み;
 			}
 			else
@@ -2762,7 +2894,14 @@ for (int i = 0; i < 3; i++) {
 				Trace.Indent();
 				try
 				{
-					if ( DTXVmode.Enabled )
+					if ( COfflineExport.Enabled )
+					{
+						// 書き出しのために起動しただけなので、設定は書き戻さない。
+						// 書き戻すと、書き出し用に作った小さなウィンドウの大きさと位置が
+						// WindowWidth/Height に残り、次に普通に起動したとき画面が縮む。
+						Trace.TraceInformation( "書き出しモードなので Config.ini は保存しません。" );
+					}
+					else if ( DTXVmode.Enabled )
 					{
 						DTXVmode.tUpdateConfigIni();
 						Trace.TraceInformation( "DTXVモードの設定情報を、Config.iniに保存しました。" );
@@ -3017,6 +3156,11 @@ for (int i = 0; i < 3; i++) {
 		}
 		private void Window_MouseUp( object sender, MouseEventArgs e )
 		{
+			// マウス操作用に、クリックされたことと位置を覚えておく
+			ptマウス位置 = new Point( e.X, e.Y );
+			if ( e.Button == MouseButtons.Left ) b左クリック生 = true;
+			else if ( e.Button == MouseButtons.Right ) b右クリック生 = true;
+
 			mb = e.Button;
 		}
 

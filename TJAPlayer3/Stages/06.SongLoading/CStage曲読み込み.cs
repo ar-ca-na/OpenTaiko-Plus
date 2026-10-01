@@ -54,6 +54,10 @@ namespace TJAPlayer3
 
 			    if (TJAPlayer3.bコンパクトモード)
 			    {
+			        // --export は選曲画面を通らないので、難易度と人数がどこにも入っていない。
+			        // 譜面を読む前に、選曲画面が置くのと同じ場所へ入れておく。
+			        COfflineExport.難易度と人数を決める();
+
 			        string strDTXファイルパス = TJAPlayer3.strコンパクトモードファイル;
 				
 			        CDTX cdtx = new CDTX( strDTXファイルパス, true, 1.0, 0, 0 );
@@ -69,9 +73,24 @@ namespace TJAPlayer3
 			    {
 			        string strDTXファイルパス = TJAPlayer3.stage選曲.r確定されたスコア.ファイル情報.ファイルの絶対パス;
 
-			        var strフォルダ名 = Path.GetDirectoryName(strDTXファイルパス) + @"\";
+			        // 譜面を持たないノード（フォルダなど）が確定されると、ここが空や
+			        // 不正なパスになる。Path.GetDirectoryName はそれで例外を投げて
+			        // ソフトごと落ちるので、その前に弾いて譜面情報だけで表示する。
+			        string strフォルダ名 = null;
+			        if ( !string.IsNullOrEmpty( strDTXファイルパス ) &&
+			             strDTXファイルパス.IndexOfAny( Path.GetInvalidPathChars() ) < 0 )
+			        {
+			            try
+			            {
+			                strフォルダ名 = Path.GetDirectoryName( strDTXファイルパス ) + @"\";
+			            }
+			            catch ( ArgumentException e )
+			            {
+			                Trace.TraceWarning( "曲のパスが不正です。({0}) {1}", strDTXファイルパス, e.Message );
+			            }
+			        }
 
-			        if (File.Exists(strフォルダ名 + @"set.def"))
+			        if (strフォルダ名 != null && File.Exists(strフォルダ名 + @"set.def"))
 			        {
 			            var cdtx = new CDTX(strDTXファイルパス, true, 1.0, 0, 1);
 
@@ -326,7 +345,12 @@ namespace TJAPlayer3
 				int y = 720 - 45;
 				if (this.txタイトル != null)
 				{
-					int nサブタイトル補正 = string.IsNullOrEmpty(TJAPlayer3.stage選曲.r確定されたスコア.譜面情報.strサブタイトル) ? 15 : 0;
+					// コンパクトモード（選曲画面を通っていない）だと r確定されたスコア が無いので、
+					// 読み込み時に控えておいたサブタイトルを使う。
+					int nサブタイトル補正 = string.IsNullOrEmpty(
+						TJAPlayer3.bコンパクトモード
+							? this.strサブタイトル
+							: TJAPlayer3.stage選曲.r確定されたスコア.譜面情報.strサブタイトル) ? 15 : 0;
 
 					this.txタイトル.Opacity = 255;
 					if (TJAPlayer3.Skin.SongLoading_Title_ReferencePoint == CSkin.ReferencePoint.Left)
@@ -423,6 +447,9 @@ namespace TJAPlayer3
 								if ( TJAPlayer3.ConfigIni.nPlayerCount == 2 )
 									TJAPlayer3.DTX_2P = new CDTX(str, false, 1.0, ini.stファイル.BGMAdjust, 0, 1, true, TJAPlayer3.stage選曲.n確定された曲の難易度[1]);
 							}
+
+							// 頼んだ難易度が無くて別のコースへ落ちたときは、画面の表示を実物に合わせる。
+							COfflineExport.実際に読み込んだ難易度に合わせる();
 
 							Trace.TraceInformation( "----曲情報-----------------" );
 				    		Trace.TraceInformation( "TITLE: {0}", TJAPlayer3.DTX.TITLE );
@@ -612,6 +639,11 @@ namespace TJAPlayer3
 					}
 
 				case CStage.Eフェーズ.共通_フェードアウト:
+					// 書き出し中は、曲名の幕を必ず一定時間見せてから先へ進む。
+					// 読み込みが速いと 0.1 秒で通り過ぎてしまい、動画に幕が写らないため。
+					if ( COfflineExport.幕をまだ見せる() )
+						return (int)E曲読込画面の戻り値.継続;
+
 					if ( this.ct待機.b終了値に達してない )		// DTXVモード時は、フェードアウト省略
 						return (int)E曲読込画面の戻り値.継続;
 

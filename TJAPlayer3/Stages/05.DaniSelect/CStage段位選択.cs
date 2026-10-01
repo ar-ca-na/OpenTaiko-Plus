@@ -147,6 +147,14 @@ namespace TJAPlayer3
 
                 if (!this.段位リスト.bスクロール中 && !b選択した && !bDifficultyIn)
                 {
+                    #region [ マウス操作 ]
+                    int nマウス段数 = TJAPlayer3.tマウスホイールの段数を取り出す();
+                    for (int i = 0; i > nマウス段数; i--) this.段位リスト.t右に移動();
+                    for (int i = 0; i < nマウス段数; i++) this.段位リスト.t左に移動();
+                    bool bマウス決定 = TJAPlayer3.tマウス左クリックを取り出す();
+                    bool bマウス戻る = TJAPlayer3.tマウス右クリックを取り出す();
+                    #endregion
+
                     if (TJAPlayer3.Input管理.Keyboard.bキーが押されている((int)Key.RightArrow) ||
                         TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RBlue))
                     {
@@ -159,7 +167,8 @@ namespace TJAPlayer3
                         this.段位リスト.t左に移動();
                     }
 
-                    if (TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Return) ||
+                    if (bマウス決定 ||
+                        TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Return) ||
                         TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LRed) ||
                         TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RRed))
                     {
@@ -169,7 +178,7 @@ namespace TJAPlayer3
                         this.段位挑戦選択画面.ctBarIn.t開始(0, 255, 1, TJAPlayer3.Timer);
                     }
 
-                    if(TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Escape))
+                    if(bマウス戻る || TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Escape))
                     {
                         TJAPlayer3.Skin.soundDanSelectBGM.t停止する();
                         TJAPlayer3.Skin.sound取消音.t再生する();

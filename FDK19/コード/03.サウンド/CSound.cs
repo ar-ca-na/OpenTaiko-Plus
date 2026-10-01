@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -24,6 +24,25 @@ namespace FDK
 		{
 			get; set;
 		}
+		/// <summary>動画書き出しのために起動しているか。true なら音を鳴らさず、書き出し側が引き抜く。</summary>
+		public static bool b書き出しモード = false;
+
+		/// <summary>書き出し中、曲（BGM）が鳴り始めたコマを知るための合図。書き出し側が読んで下ろす。</summary>
+		public static bool b曲の再生が始まった = false;
+
+		/// <summary>書き出し中に控えておく曲の音量（0〜1 の線形）。後付けのときに掛ける。</summary>
+		public static double d曲の音量 = 1.0;
+
+		/// <summary>
+		/// 遊びながら録るモードで、鳴った音を書き出し側へ知らせる受け口。
+		/// このモードでは音をスピーカーに出す必要があるので、
+		/// --export のようにミキサーから引き抜けない。
+		/// 代わりに「いつ・どのファイルを・どの音量で鳴らしたか」だけを渡し、
+		/// あとから同じ位置に並べ直して打音の音声を作る。
+		/// 書き出し側が使うときだけ差し込む（普段は null で、何もしない）。
+		/// </summary>
+		public static Action<string, double> 鳴った音を知らせる = null;
+
 		private static ESoundDeviceType SoundDeviceType
 		{
 			get; set;
@@ -300,6 +319,22 @@ namespace FDK
 		}
 
 
+		/// <summary>
+		/// 動画書き出し用に、ミキサーから音を 1 コマぶん引き抜く。
+		/// 書き出しモードでないときは何もしない。
+		/// </summary>
+		public static int t書き出し用に音を取り出す( byte[] buffer, int length )
+		{
+			CSoundDeviceExport dev = SoundDevice as CSoundDeviceExport;
+			if ( dev == null ) return 0;
+			return dev.t音を取り出す( buffer, length );
+		}
+
+		/// <summary>書き出し用デバイスの周波数（Hz）。</summary>
+		public static int n書き出し用の周波数 { get { return CSoundDeviceExport.n周波数; } }
+		/// <summary>書き出し用デバイスの 1 サンプルあたりのバイト数。</summary>
+		public static int n書き出し用の1サンプルのバイト数 { get { return CSoundDeviceExport.n1サンプルのバイト数; } }
+
 		public static void t終了()
 		{
 			C共通.tDisposeする( SoundDevice ); SoundDevice = null;
@@ -328,6 +363,13 @@ namespace FDK
 
 			#region [ 新しいサウンドデバイスを構築する。]
 			//-----------------
+			// 動画書き出し中は、実時間で音を吸い出さない専用デバイスを使う。
+			// 普通のデバイスだとスピーカーの速さに引きずられて、映像と音の長さが合わない。
+			if ( b書き出しモード )
+			{
+				SoundDevice = new CSoundDeviceExport();
+			}
+			else
 			switch ( SoundDeviceType )
 			{
 				case ESoundDeviceType.ExclusiveWASAPI:
@@ -385,6 +427,8 @@ namespace FDK
 
 		public string GetCurrentSoundDeviceType()
 		{
+			if ( b書き出しモード )
+				return "Export";
 			switch ( SoundDeviceType )
 			{
 				case ESoundDeviceType.ExclusiveWASAPI:
@@ -695,6 +739,22 @@ namespace FDK
 	            if (this.bBASSサウンドである)
 	            {
 	                var db音量 = ((value.ToDouble() / 100.0) + 1.0).Clamp(0, 1);
+
+	                // 書き出し中、曲（BGM）はミキサーに混ぜない。
+	                // ミキサーに登録された瞬間から流れてしまい、本来の開始位置より早く鳴るため。
+	                // 代わりに音量だけ控えておき、書き出しの最後に音源ファイルを
+	                // 正しい位置へずらして重ねる。そのほうが音質も落ちない。
+	                this.d実効音量 = db音量;
+
+	                if (SoundGroup == ESoundGroup.SongPlayback)
+	                {
+	                    // 音量はどちらのモードでも控える（あとで音源を重ねるときに掛ける）。
+	                    CSound管理.d曲の音量 = db音量;
+	                    // ミキサーから外すのは --export のときだけ。
+	                    // 遊びながら録るときは曲が鳴らないと困る。
+	                    if (CSound管理.b書き出しモード) db音量 = 0;
+	                }
+
 	                Bass.BASS_ChannelSetAttribute(this.hBassStream, BASSAttribute.BASS_ATTRIB_VOL, (float) db音量);
 	            }
 	            else if (this.bDirectSoundである)
@@ -851,7 +911,7 @@ namespace FDK
 				//-----------------
 				try
 				{
-					Stream str = File.Open(strファイル名, FileMode.Open, FileAccess.Read);
+					Stream str = File.Open(strファイル名, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 					using (var ws = new SoundStream(str))
 					{
 						if (ws.Format.Encoding != WaveFormatEncoding.Pcm)
@@ -869,7 +929,7 @@ namespace FDK
 				{
 					#region [ ファイルを読み込んで byArrWAVファイルイメージへ格納。]
 					//-----------------
-					var fs = File.Open( strファイル名, FileMode.Open, FileAccess.Read );
+					var fs = File.Open( strファイル名, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
 					var br = new BinaryReader( fs );
 
 					byArrWAVファイルイメージ = new byte[ fs.Length ];
@@ -1243,6 +1303,21 @@ namespace FDK
 		}
 		private void tサウンドを再生する( bool bループする )
 		{
+			// 書き出し中は、曲（BGM）が鳴り始めた瞬間を書き出し側に知らせる。
+			if ( this.SoundGroup == ESoundGroup.SongPlayback )
+				CSound管理.b曲の再生が始まった = true;
+
+			// 遊びながら録るモードでは、曲以外の音（打音・声など）が
+			// 鳴った時刻を書き出し側に控えてもらう。
+			if ( CSound管理.鳴った音を知らせる != null
+				&& this.SoundGroup != ESoundGroup.SongPlayback
+				&& this.SoundGroup != ESoundGroup.SongPreview
+				&& !string.IsNullOrEmpty( this.strファイル名 ) )
+			{
+				try { CSound管理.鳴った音を知らせる( this.strファイル名, this.d実効音量 ); }
+				catch { }
+			}
+
 			if ( this.bBASSサウンドである )			// BASSサウンド時のループ処理は、t再生を開始する()側に実装。ここでは「bループする」は未使用。
 			{
 //Debug.WriteLine( "再生中?: " +  System.IO.Path.GetFileName(this.strファイル名) + " status=" + BassMix.BASS_Mixer_ChannelIsActive( this.hBassStream ) + " current=" + BassMix.BASS_Mixer_ChannelGetPosition( this.hBassStream ) + " nBytes=" + nBytes );
@@ -1567,6 +1642,8 @@ Debug.WriteLine("更に再生に失敗: " + Path.GetFileName(this.strファイ�
 		protected E作成方法 e作成方法 = E作成方法.Unknown;
 		protected ESoundDeviceType eデバイス種別 = ESoundDeviceType.Unknown;
 		public string strファイル名 = null;
+		/// <summary>いま実際に掛かっている音量（0〜1 の線形）。打音を後から並べ直すときに使う。</summary>
+		public double d実効音量 = 1.0;
 		protected byte[] byArrWAVファイルイメージ = null;	// WAVファイルイメージ、もしくはchunkのDATA部のみ
 		protected GCHandle hGC;
 		protected int _hTempoStream = 0;
@@ -1698,7 +1775,7 @@ Debug.WriteLine("更に再生に失敗: " + Path.GetFileName(this.strファイ�
 			//-----------------
 			try
 			{
-				Stream str = File.Open(strファイル名, FileMode.Open, FileAccess.Read);
+				Stream str = File.Open(strファイル名, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 				using (var ws = new SoundStream(str))
 				{
 					if (ws.Format.Encoding == (WaveFormatEncoding)0x6770 || // Ogg Vorbis Mode 2+

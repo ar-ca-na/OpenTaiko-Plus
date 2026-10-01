@@ -189,6 +189,20 @@ namespace TJAPlayer3
 		{
             LoudnessMetadataScanner.StopBackgroundScanning(joinImmediately: false);
 
+            // 作譜支援モードは、頭出し・停止の仕組みを特訓モードから借りる。
+            // 借りている間だけ ON にして、演奏を抜けるときに元へ戻す。
+            // t演奏を再開する() は演奏中にこの On活性化 を呼び直すので、
+            // 二重に借りて「元の値」を上書きしないよう一度だけ覚える。
+            if ( TJAPlayer3.ConfigIni.bChartAuthoring )
+            {
+                if ( !this.b特訓モードを借りている )
+                {
+                    this.b借りる前の特訓モード = TJAPlayer3.ConfigIni.bTokkunMode;
+                    this.b特訓モードを借りている = true;
+                }
+                TJAPlayer3.ConfigIni.bTokkunMode = true;
+            }
+
 			this.bフィルイン中 = false;
             this.n待機中の大音符の座標 = 0;
             this.actGame.t叩ききりまショー_初期化();
@@ -293,6 +307,11 @@ namespace TJAPlayer3
         }
 		public override void On非活性化()
 		{
+            if ( this.b特訓モードを借りている )
+            {
+                TJAPlayer3.ConfigIni.bTokkunMode = this.b借りる前の特訓モード;
+                this.b特訓モードを借りている = false;
+            }
             this.ct手つなぎ = null;
 			base.On非活性化();
 
@@ -630,6 +649,9 @@ namespace TJAPlayer3
         public CAct演奏Drums演奏終了演出 actEnd;
         private CAct演奏Drumsゲームモード actGame;
         public CAct演奏Drums特訓モード actTokkun;
+        /// <summary>作譜支援モードのために特訓モードを一時的に ON にしているか。</summary>
+        private bool b特訓モードを借りている;
+        private bool b借りる前の特訓モード;
         public CAct演奏Drums背景 actBackground;
         public GoGoSplash GoGoSplash;
         public FlyingNotes FlyingNotes;

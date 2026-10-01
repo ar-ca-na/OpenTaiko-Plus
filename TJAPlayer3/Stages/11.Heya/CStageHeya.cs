@@ -364,6 +364,14 @@ namespace TJAPlayer3
 
             #region [ キー関連 ]
 
+            #region [ マウス操作 ]
+            int nマウス段数 = TJAPlayer3.tマウスホイールの段数を取り出す();
+            bool bマウス決定 = TJAPlayer3.tマウス左クリックを取り出す();
+            bool bマウス戻る = TJAPlayer3.tマウス右クリックを取り出す();
+            for (int im = 0; im > nマウス段数; im--) { if (this.tMove(1)) TJAPlayer3.Skin.sound変更音.t再生する(); }
+            for (int im = 0; im < nマウス段数; im++) { if (this.tMove(-1)) TJAPlayer3.Skin.sound変更音.t再生する(); }
+            #endregion
+
             if (TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.RightArrow) ||
                 TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RBlue))
             {
@@ -382,7 +390,7 @@ namespace TJAPlayer3
                 }
             }
 
-            else if (TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Return) ||
+            else if (bマウス決定 || TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Return) ||
                 TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LRed) ||
                 TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RRed))
             {
@@ -474,7 +482,7 @@ namespace TJAPlayer3
                 #endregion
             }
 
-            else if (TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Escape))
+            else if (bマウス戻る || TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Escape))
             {
                 
                 TJAPlayer3.Skin.sound取消音.t再生する();

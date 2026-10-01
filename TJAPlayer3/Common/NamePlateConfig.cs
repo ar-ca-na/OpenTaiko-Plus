@@ -12,9 +12,10 @@ namespace TJAPlayer3
     {
         public void tNamePlateConfig()
         {
-            if (!File.Exists("NamePlate.json"))
-                tSaveFile();
-
+            // ここで File.Exists("NamePlate.json") を見てから tSaveFile() していたが、
+            // このパスは作業フォルダ基準なので、bat から起動すると
+            // 「無い」と判定されて、既定値で本物を上書きしてしまう。
+            // ConfigManager.GetConfig が無いときだけ作ってくれるので、そちらに任せる。
             tLoadFile();
         }
 
