@@ -1,4 +1,6 @@
-"""OpenTaiko 譜面動画版のリリースを 1 コマンドで行う。
+"""OpenTaiko 機能追加版のリリースを 1 コマンドで行う。
+
+  リリースの本文は 配布/notes/<版>.md があればそれを使う（無ければコミットの 1 行目を並べる）。
 
   python 配布/release.py 1.2            確認を挟んでリリース
   python 配布/release.py 1.2 --yes      確認なし（本人が「出して」と言ったときだけ）
@@ -22,7 +24,7 @@ REMOTE = "github"
 MSBUILD = r"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
 # --deploy の入れ先（手元のゲームフォルダ）。PC のフォルダ構成を公開しないため、git に入れないファイルから読む
 GAME_FILE = os.path.join(HERE, "game_path.txt")
-TOP = "OpenTaiko譜面動画版"                     # ZIP の中のフォルダ名
+TOP = "OpenTaiko機能追加版"                     # ZIP の中のフォルダ名
 # ZIP 直下に置くもの / 中身\ に置くもの
 TOP_FILES = ["はじめにお読みください.txt", "LICENSE.txt", "適用する.bat", "apply.ps1"]
 INNER_FILES = ["譜面を動画にする.bat", "更新する.bat", "scorevideo_update.ps1"]
@@ -138,6 +140,13 @@ def main():
         z.writestr(f"{TOP}/中身/scorevideo_version.txt", tag + "\r\n")
         z.write(exe, f"{TOP}/中身/OpenTaiko.exe")
         z.write(dll, f"{TOP}/中身/dll/FDK.dll")
+        # 本家の決まり: 改造・再配布するときは Licenses フォルダを必ず同梱する（sparse で手元に無いので git から取る）
+        for lp in git("ls-tree", "-r", "--name-only", "HEAD", "Test/Licenses").splitlines():
+            data = subprocess.run(["git", "show", "HEAD:" + lp], cwd=ROOT, capture_output=True, check=True).stdout
+            z.writestr(f"{TOP}/Licenses/" + lp[len("Test/Licenses/"):], data)
+    # 1 行で入れるコマンド（releases/latest/download/install.ps1）が落とすもの
+    inst = os.path.join(out, "install.ps1")
+    open(inst, "wb").write(crlf(open(os.path.join(HERE, "scorevideo_update.ps1"), "rb").read(), bom=True))
     print(f"ZIP: {zpath} ({os.path.getsize(zpath) // 1024} KB)")
     if zip_only:
         return
@@ -145,7 +154,11 @@ def main():
     # 変わったこと（前のタグからのコミットの 1 行目）
     rng = f"{prev}..HEAD" if prev else "HEAD~1..HEAD"
     changes = [s for s in git("log", "--format=%s", rng).splitlines() if s]
-    body = "\n".join("- " + s for s in changes) + (
+    notes = os.path.join(HERE, "notes", ver + ".md")
+    if os.path.exists(notes):
+        body = open(notes, encoding="utf-8-sig").read().strip()
+    else:
+        body ="\n".join("- " + s for s in changes) + (
         "\n\n**入れ方**: ZIP を展開して「適用する.bat」をダブルクリック。"
         "\n**更新**: 一度入れたら、OpenTaiko のフォルダの「更新する.bat」で最新版になります。")
     print(f"\n{tag} の変わったこと:\n{body}\n")
@@ -157,16 +170,18 @@ def main():
     now = subprocess.run(["python", "-c", "import datetime;print(datetime.datetime.now(datetime.timezone.utc)"
                           ".strftime('%Y-%m-%dT%H:%M:%S+0000'))"], capture_output=True, text=True).stdout.strip()
     env["GIT_COMMITTER_DATE"] = now
-    r = subprocess.run(["git", "tag", "-a", tag, "-m", f"OpenTaiko 譜面動画版 {tag}"], cwd=ROOT, env=env)
+    r = subprocess.run(["git", "tag", "-a", tag, "-m", f"OpenTaiko 機能追加版 {tag}"], cwd=ROOT, env=env)
     if r.returncode: sys.exit("タグを付けられませんでした")
     run("git", "push", REMOTE, "main", tag)
 
     # 6. Release と添付
     tok = token()
     rel = api("POST", f"https://api.github.com/repos/{REPO}/releases", tok,
-              {"tag_name": tag, "name": f"OpenTaiko 譜面動画版 {tag}", "body": body})
+              {"tag_name": tag, "name": f"OpenTaiko 機能追加版 {tag}（非公式改造版）", "body": body})
     up = rel["upload_url"].split("{")[0] + "?name=" + urllib.parse.quote(os.path.basename(zpath))
     api("POST", up, tok, data=open(zpath, "rb").read(), ctype="application/zip")
+    up = rel["upload_url"].split("{")[0] + "?name=install.ps1"
+    api("POST", up, tok, data=open(inst, "rb").read(), ctype="application/octet-stream")
     del tok
     print(f"公開しました: {rel['html_url']}")
 

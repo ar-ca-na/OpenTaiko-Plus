@@ -1,42 +1,45 @@
-# OpenTaiko 譜面動画版（非公式の改造版）
+# OpenTaiko 機能追加版（非公式の改造版）
 
-> **これは [OpenTaiko](https://github.com/0auBSQ/OpenTaiko)（作者: 0auBSQ と貢献者の皆さん）v0.5.2.1 を元にした、非公式の改造版です。**
-> OpenTaiko 本体の開発元とは関係がありません。この改造版の不具合を本家に問い合わせないでください。
+> **[OpenTaiko](https://github.com/0auBSQ/OpenTaiko)（作者: 0auBSQ と貢献者の皆さん）v0.5.2.1 に機能を足した、非公式の改造版です。**
+> 本家とは関係ありません。困ったことがあっても本家には問い合わせないでください。
 > 本家の説明書は [README-OpenTaiko.md](README-OpenTaiko.md)（[English](README-OpenTaiko-EN.md)）に残してあります。
 
-OpenTaiko v0.5.2.1 に、次の機能と修正を足したものです。
-入れ替えるのは `OpenTaiko.exe` と `dll\FDK.dll` の 2 つだけで、曲・スキン・設定はお使いのものをそのまま使います。
+## できること
 
-## 追加した機能
+- **譜面（.tja）を動画（mp4）にする** — 遊ばずに 1 コマずつ書き出すので、PC が重くてもコマ落ちしません。曲の音量は自動で整えます
+- **作譜支援モード** — 演奏中に止める・小節を移動する・譜面を読み直す（F5）
+- **マウス操作** — 演奏以外のほぼすべての画面
+- **本体の不具合の修正** — 全画面が真っ白になる、別のモニタへ動かすと落ちる、BPM 変化でキャラの動きが飛ぶ、など
 
-| 機能 | 内容 |
-|---|---|
-| 譜面を動画に書き出す | `.tja` を「譜面を動画にする.bat」にドロップすると mp4 ができます。遊ばずに 1 コマずつ計算して書き出すので、PC が重くてもコマ落ちしません |
-| 遊びながら書き出す | 設定画面の「動画を書き出す」を ON にすると、演奏するたびに mp4 ができます |
-| 書き出す曲の音量 | 動画に乗せる曲の音量を % で指定するか、音源の大きさから自動で決められます |
-| 作譜支援モード | 演奏中に停止・小節移動・tja の読み直しができます（譜面を作る人向け） |
-| マウス操作 | 演奏以外のほぼ全画面をホイールとクリックで操作できます |
+入れ替えるのは `OpenTaiko.exe` と `dll\FDK.dll` だけです。曲・スキン・設定は今のものをそのまま使えます。
+使うには **OpenTaiko v0.5.2.1 本体**が必要です。
 
-ほかに、ウィンドウを大きくすると真っ白になる・別モニタへ移すと落ちる、などの本体の不具合をいくつか直しています。
+## 入れ方
 
-## 入手
+**ZIP から**: [Releases](https://github.com/ar-ca-na/OpenTaiko-ScoreVideo/releases/latest) から ZIP を落として展開し、「適用する.bat」をダブルクリック。
 
-[Releases](https://github.com/ar-ca-na/OpenTaiko-ScoreVideo/releases/latest) から ZIP を落とし、中の「はじめにお読みください.txt」に従ってください。
-OpenTaiko v0.5.2.1 本体と、動画の書き出しには ffmpeg が別に要ります。
+**コマンド 1 行で**: OpenTaiko.exe があるフォルダのアドレス欄に `cmd` と入れて Enter、開いた黒い窓に次の 1 行を貼って Enter。
+
+```bat
+curl -fL -o "%TEMP%\opentaiko_plus.ps1" https://github.com/ar-ca-na/OpenTaiko-ScoreVideo/releases/latest/download/install.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\opentaiko_plus.ps1" "%CD%"
+```
+
+どちらも元のファイルを `OpenTaiko_もとの版.exe` として残し、動画の書き出しに使う ffmpeg が無ければ自動で入れるか聞きます。
+入れたあとは、OpenTaiko のフォルダの「更新する.bat」で最新版に更新できます。
+詳しい使い方は ZIP の中の「はじめにお読みください.txt」にあります。
 
 ## ソースについて
 
-- 最初のコミットは本家のタグ `v0.5.2.1` の中身そのものです。改造はそれ以降のコミットにあります。
-  本家からの差分は `git diff v0.5.2.1` で見られます。
-- ビルドは Visual Studio 2022（MSBuild）で `TJAPlayer3/TJAPlayer3.csproj` を Release / x86 で行います。
+- 最初のコミットは本家のタグ `v0.5.2.1` の中身そのものです。改造はそれ以降のコミットにあります（`git diff v0.5.2.1` で差分が見られます）。
+- ビルド: Visual Studio 2022 で `TJAPlayer3/TJAPlayer3.csproj` を Release / x86。
 
 ## ライセンス
 
-本家と同じ MIT License です（[LICENSE](LICENSE)）。
-OpenTaiko 本体の著作権は 0auBSQ と貢献者の皆さんにあります。改造部分も同じ MIT License で公開します。
+本家と同じ MIT License です（[LICENSE](LICENSE)）。OpenTaiko 本体の著作権は 0auBSQ と貢献者の皆さんにあります。
+配布 ZIP には本家の決まりに従って `Licenses` フォルダ（使っているライブラリのライセンス）を同梱しています。
 
 ---
 
-**English:** This is an *unofficial* modified build of [OpenTaiko](https://github.com/0auBSQ/OpenTaiko) v0.5.2.1 by 0auBSQ and contributors.
-It adds offline video export of charts (mp4), a chart-authoring mode, mouse control and several bug fixes.
-It is not affiliated with the OpenTaiko project — please do not report issues of this build upstream. Licensed under MIT, same as the original.
+**English:** An *unofficial* modified build of [OpenTaiko](https://github.com/0auBSQ/OpenTaiko) v0.5.2.1 by 0auBSQ and contributors.
+Adds offline video export of charts (mp4), a chart-authoring mode, mouse control and several bug fixes.
+Not affiliated with the OpenTaiko project — please do not report issues of this build upstream. MIT License, same as the original.

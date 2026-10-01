@@ -1,5 +1,7 @@
-﻿# OpenTaiko 譜面動画版 こうしん script
+﻿# OpenTaiko 機能追加版 こうしん script
 # 更新する.bat から呼ばれる。GitHub の最新版を落として、適用する.bat と同じ入れ替えを行う。
+# 初めて入れるときも、これを install.ps1 として落とし、OpenTaiko のフォルダを引数に渡して使う。
+param([string]$入れ先 = '')
 
 $ErrorActionPreference = 'Stop'
 $リポジトリ = 'ar-ca-na/OpenTaiko-ScoreVideo'
@@ -11,13 +13,14 @@ function 待って終わる([int]$code) {
     exit $code
 }
 
-$ここ = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ここ = if ($入れ先) { $入れ先.Trim('"').TrimEnd('\') } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 Write-Host ''
-Write-Host '=== OpenTaiko 譜面動画版 の更新 ===' -ForegroundColor Cyan
+Write-Host '=== OpenTaiko 機能追加版 の入れ替え・更新 ===' -ForegroundColor Cyan
 Write-Host ''
 
 if (-not (Test-Path (Join-Path $ここ 'OpenTaiko.exe'))) {
-    Write-Host 'このファイルは OpenTaiko.exe と同じフォルダに置いて使ってください。' -ForegroundColor Red
+    Write-Host ('ここに OpenTaiko.exe がありません: ' + $ここ) -ForegroundColor Red
+    Write-Host 'OpenTaiko.exe があるフォルダで実行してください。'
     待って終わる 1
 }
 
@@ -46,7 +49,7 @@ catch {
 }
 
 $版 = [string]$最新.tag_name
-Write-Host ('いま入っている版: ' + $(if ($今の版) { $今の版 } else { '（不明）' }))
+Write-Host ('いま入っている版: ' + $(if ($今の版) { $今の版 } else { '（まだ入っていません）' }))
 Write-Host ('最新の版        : ' + $版)
 
 if ($今の版 -and $今の版 -eq $版) {
@@ -75,7 +78,7 @@ if (Get-Process -Name 'OpenTaiko' -ErrorAction SilentlyContinue) {
 }
 
 Write-Host ''
-$答え = Read-Host '更新しますか？ 更新するなら y を入れて Enter'
+$答え = Read-Host $(if ($今の版) { '更新しますか？ 更新するなら y を入れて Enter' } else { '入れますか？ 入れるなら y を入れて Enter' })
 if ($答え -ne 'y') { Write-Host 'やめました。'; 待って終わる 0 }
 
 # --- 落として展開して、入れ替え -----------------------------------------

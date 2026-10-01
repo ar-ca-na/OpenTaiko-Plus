@@ -1,4 +1,4 @@
-﻿# OpenTaiko 譜面動画版 いれかえ script
+﻿# OpenTaiko 機能追加版 いれかえ script
 # 適用する.bat から呼ばれる。直接ダブルクリックしても動く。
 
 $ErrorActionPreference = 'Stop'
@@ -14,7 +14,7 @@ $ここ = Split-Path -Parent $MyInvocation.MyCommand.Path
 $中身 = Join-Path $ここ '中身'
 
 Write-Host ''
-Write-Host '=== OpenTaiko 譜面動画版 のいれかえ ===' -ForegroundColor Cyan
+Write-Host '=== OpenTaiko 機能追加版 のいれかえ ===' -ForegroundColor Cyan
 Write-Host ''
 
 if (-not (Test-Path (Join-Path $中身 'OpenTaiko.exe'))) {
@@ -149,9 +149,43 @@ Write-Host ''
 if ($ffmpeg) {
     Write-Host ('ffmpeg: ' + $ffmpeg)
 } else {
-    Write-Host 'ffmpeg.exe が見つかりません。動画の書き出しには必要です。' -ForegroundColor Yellow
-    Write-Host '  https://www.gyan.dev/ffmpeg/builds/ の release essentials を落として、'
-    Write-Host ('  中の ffmpeg.exe を ' + $先 + ' に置いてください。')
+    Write-Host 'ffmpeg.exe が見つかりません。動画の書き出しに必要です。' -ForegroundColor Yellow
+    $ffurl = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip'
+    $答え = Read-Host '  いま自動で入れますか？（約 100MB を落とします）入れるなら y を入れて Enter'
+    if ($答え -eq 'y') {
+        $作業 = Join-Path $env:TEMP ('ffmpeg-' + [Guid]::NewGuid().ToString('N'))
+        try {
+            New-Item -ItemType Directory -Path $作業 | Out-Null
+            $ffzip = Join-Path $作業 'ffmpeg.zip'
+            Write-Host '  ダウンロード中（数分かかることがあります）…'
+            $curl = Join-Path $env:SystemRoot 'System32\curl.exe'
+            if (Test-Path $curl) {
+                & $curl -fL --retry 3 -o $ffzip $ffurl
+                if ($LASTEXITCODE -ne 0) { throw ('curl が失敗しました（' + $LASTEXITCODE + '）') }
+            } else {
+                $ProgressPreference = 'SilentlyContinue'
+                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+                Invoke-WebRequest -Uri $ffurl -OutFile $ffzip -UseBasicParsing -TimeoutSec 900
+            }
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $z = [IO.Compression.ZipFile]::OpenRead($ffzip)
+            try {
+                $e = $z.Entries | Where-Object { $_.FullName -like '*/bin/ffmpeg.exe' } | Select-Object -First 1
+                if (-not $e) { throw 'ZIP の中に ffmpeg.exe がありません。' }
+                [IO.Compression.ZipFileExtensions]::ExtractToFile($e, (Join-Path $先 'ffmpeg.exe'), $true)
+            } finally { $z.Dispose() }
+            Write-Host ('  入れました: ' + (Join-Path $先 'ffmpeg.exe')) -ForegroundColor Green
+        }
+        catch {
+            Write-Host ('  入れられませんでした: ' + $_.Exception.Message) -ForegroundColor Red
+            Write-Host ('  手で入れる場合: ' + $ffurl + ' を落とし、中の bin\ffmpeg.exe を')
+            Write-Host ('  ' + $先 + ' に置いてください。')
+        }
+        finally { try { Remove-Item -LiteralPath $作業 -Recurse -Force } catch { } }
+    } else {
+        Write-Host ('  あとで入れる場合: ' + $ffurl + ' を落とし、中の bin\ffmpeg.exe を')
+        Write-Host ('  ' + $先 + ' に置いてください。')
+    }
 }
 
 Write-Host ''
