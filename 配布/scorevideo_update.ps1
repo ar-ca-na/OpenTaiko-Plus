@@ -85,6 +85,7 @@ try {
 }
 catch {
     Write-Host ('ダウンロードか展開に失敗しました: ' + $_.Exception.Message) -ForegroundColor Red
+    try { Remove-Item -LiteralPath $作業 -Recurse -Force } catch { }
     Write-Host ('手で落とす場合: https://github.com/' + $リポジトリ + '/releases/latest')
     待って終わる 1
 }
