@@ -301,6 +301,20 @@ namespace FDK
 		}
 		public delegate void DGキー処理();
 
+		/// <summary>
+		/// 作り直したカウンタを、前のカウンタの値から続ける（BPM 変化で速さだけ変えるとき用）。
+		/// db 版は作った直後に「時刻 0 から今まで」を一気に進めてしまうので、経過の起点も今にそろえる。
+		/// </summary>
+		public void t続きから(CCounter 前)
+		{
+			if (前 == null || !this.b開始した || this.n終了値 < this.n開始値) return;
+			this.n現在の値 = (int)Math.Min(Math.Max(前.n現在の値, this.n開始値), this.n終了値);
+			if (this.timerdb != null)
+				this.n現在の経過時間ms = this.timerdb.n現在時刻;
+			else if (this.timer != null)
+				this.n現在の経過時間ms = this.timer.n現在時刻;
+		}
+
 		//-----------------
 		#endregion
 

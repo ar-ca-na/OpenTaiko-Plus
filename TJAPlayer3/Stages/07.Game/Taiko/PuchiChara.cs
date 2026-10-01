@@ -31,10 +31,17 @@ namespace TJAPlayer3
             base.On非活性化();
         }
         
-        public void ChangeBPM(double bpm)
+        /// <param name="b続きから">true なら連番と揺れを 0 に戻さず、直前のコマから続ける（演奏中の BPM 変化）。</param>
+        public void ChangeBPM(double bpm, bool b続きから = false)
         {
+            CCounter 前 = Counter, 前Sine = SineCounter;
             Counter = new CCounter(0, TJAPlayer3.Skin.Game_PuchiChara[2] - 1, (int)(TJAPlayer3.Skin.Game_PuchiChara_Timer * bpm / TJAPlayer3.Skin.Game_PuchiChara[2]), TJAPlayer3.Timer);
             SineCounter = new CCounter(1, 360, TJAPlayer3.Skin.Game_PuchiChara_SineTimer * bpm / 180, CSound管理.rc演奏用タイマ);
+            if (b続きから)
+            {
+                Counter.t続きから(前);
+                SineCounter.t続きから(前Sine);
+            }
             this.inGame = true;
         }
 
