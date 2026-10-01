@@ -1,0 +1,33 @@
+OpenTaiko は MIT ライセンスです。以下は本家 (0auBSQ/OpenTaiko) の
+LICENSE をそのまま載せたものです。
+
+この配布物に含まれる OpenTaiko.exe は、0.5.2.1 に
+「譜面を動画に書き出す機能」「作譜支援モード」と、それに伴う不具合修正を
+加えたものです。改変者は本家とは無関係です。
+不具合があっても本家に問い合わせないでください。
+
+本家: https://github.com/0auBSQ/OpenTaiko
+
+--------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2021 0auBSQ
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
