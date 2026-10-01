@@ -734,6 +734,44 @@ namespace TJAPlayer3
             }
         }
 
+        /// <summary>書き出す音のピークの上限。AAC にしたときの行き過ぎぶんを 1dB 空けておく。</summary>
+        private const double 目標ピークdB = -1.0;
+
+        /// <summary>
+        /// フィルタ graph（[mix] を作る）で混ぜた音のピークを dBFS で測る。
+        /// volumedetect は 16bit に直してから測るので 0dB で頭打ちになる。astats は float のまま測れる。
+        /// </summary>
+        private static double? ピークを測る(string inputs, string graph)
+        {
+            try
+            {
+                var p = new Process();
+                p.StartInfo.FileName = FfmpegPath;
+                p.StartInfo.Arguments = "-hide_banner -nostats" + inputs
+                    + " -filter_complex \"" + graph + ";[mix]aformat=sample_fmts=flt,"
+                    + "astats=measure_perchannel=none:measure_overall=Peak_level[pk]\""
+                    + " -map \"[pk]\" -f null -";
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.RedirectStandardError = true;
+                p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
+                p.StartInfo.CreateNoWindow = true;
+                p.Start();
+                string err = p.StandardError.ReadToEnd();
+                p.WaitForExit(120000);
+                p.Dispose();
+                var m = System.Text.RegularExpressions.Regex.Match(err, @"Peak level dB:\s*(-?[0-9.]+|-?inf)");
+                if (!m.Success) return null;
+                double v;
+                if (!double.TryParse(m.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out v)) return null;
+                return v;
+            }
+            catch (Exception e)
+            {
+                Write("音のピークが測れません: " + e.Message);
+                return null;
+            }
+        }
+
         /// <summary>映像の一時ファイルと、貯めた音を重ねて完成品にする。</summary>
         private static void Mux()
         {
@@ -753,29 +791,51 @@ namespace TJAPlayer3
                 int 遅延ms = 曲あり ? (int)(songStartFrame * 1000 / Fps) : 0;
                 double 曲の音量 = CSound管理.d曲の音量;
 
-                string args = "-y -hide_banner -loglevel error -i \"" + videoTmpPath + "\"";
+                string inputs = " -i \"" + videoTmpPath + "\"";
                 if (打音あり)
-                    args += " -f f32le -ar " + CSound管理.n書き出し用の周波数 + " -ac 2 -i \"" + audioTmpPath + "\"";
+                    inputs += " -f f32le -ar " + CSound管理.n書き出し用の周波数 + " -ac 2 -i \"" + audioTmpPath + "\"";
                 if (曲あり)
-                    args += " -i \"" + 音源 + "\"";
+                    inputs += " -i \"" + 音源 + "\"";
 
+                // 混ぜた音を [mix] として作るフィルタ
+                string 曲のフィルタ(int n) => "[" + n + ":a]adelay=" + 遅延ms + "|" + 遅延ms
+                    + ",volume=" + 曲の音量.ToString("0.####", CultureInfo.InvariantCulture);
+                string graph = null;
+                string shortest = "";
                 if (打音あり && 曲あり)
-                {
-                    args += " -filter_complex \"[2:a]adelay=" + 遅延ms + "|" + 遅延ms
-                         + ",volume=" + 曲の音量.ToString("0.####", CultureInfo.InvariantCulture) + "[bgm];"
-                         + "[1:a][bgm]amix=inputs=2:duration=first:normalize=0[a]\""
-                         + " -map 0:v:0 -map \"[a]\" -c:v copy -c:a aac -b:a 192k";
-                }
+                    graph = 曲のフィルタ(2) + "[bgm];[1:a][bgm]amix=inputs=2:duration=first:normalize=0[mix]";
                 else if (打音あり)
                 {
-                    args += " -c:v copy -c:a aac -b:a 192k -map 0:v:0 -map 1:a:0 -shortest";
+                    graph = "[1:a]anull[mix]";
+                    shortest = " -shortest";
                 }
                 else if (曲あり)
                 {
                     // 打音を録れていない場合（遊びながら録るモードなど）は曲だけ重ねる。
-                    args += " -filter_complex \"[1:a]adelay=" + 遅延ms + "|" + 遅延ms
-                         + ",volume=" + 曲の音量.ToString("0.####", CultureInfo.InvariantCulture) + "[a]\""
-                         + " -map 0:v:0 -map \"[a]\" -c:v copy -c:a aac -b:a 192k -shortest";
+                    graph = 曲のフィルタ(1) + "[mix]";
+                    shortest = " -shortest";
+                }
+
+                // 打音と曲を足すと 0dBFS を超える（実測で最大 +6.4dB）。超えたまま書くと、
+                // 再生側のリミッターやクリップが打音のたびに全体を押し下げ、
+                // 「打音で曲の音量が下がる」ように聞こえる。ゲームを録画した音にはこれが無い。
+                // そこで 1 回目でピークを測り、配分は変えずに全体を -1dBFS まで下げる。
+                double 下げるdB = 0;
+                if (graph != null)
+                {
+                    double? ピーク = ピークを測る(inputs, graph);
+                    if (ピーク.HasValue && ピーク.Value > 目標ピークdB)
+                        下げるdB = 目標ピークdB - ピーク.Value;
+                    Write("音のピーク: " + (ピーク.HasValue ? ピーク.Value.ToString("0.00", CultureInfo.InvariantCulture) + " dBFS" : "測れず")
+                        + (下げるdB < 0 ? " → 全体を " + 下げるdB.ToString("0.00", CultureInfo.InvariantCulture) + " dB" : ""));
+                }
+
+                string args = "-y -hide_banner -loglevel error" + inputs;
+                if (graph != null)
+                {
+                    args += " -filter_complex \"" + graph + ";[mix]volume="
+                         + 下げるdB.ToString("0.###", CultureInfo.InvariantCulture) + "dB[a]\""
+                         + " -map 0:v:0 -map \"[a]\" -c:v copy -c:a aac -b:a 192k" + shortest;
                 }
                 else
                 {
