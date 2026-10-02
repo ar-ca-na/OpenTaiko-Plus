@@ -438,12 +438,15 @@ namespace TJAPlayer3
 					TJAPlayer3.DTX.t全チップの再生停止();
 					base.eフェーズID = CStage.Eフェーズ.演奏_STAGE_FAILED;
 				}
-                if( !String.IsNullOrEmpty( TJAPlayer3.DTX.strBGIMAGE_PATH ) || ( TJAPlayer3.DTX.listAVI.Count == 0 )|| !TJAPlayer3.ConfigIni.bAVI有効 ) //背景動画があったら背景画像を描画しない。
+                // 背景動画を実際に読めたときだけ「動画あり」とみなす（読めなかったのに背景も踊り子も消えて真っ黒、にならないように）。
+                bool b背景動画あり = TJAPlayer3.ConfigIni.bAVI有効 && TJAPlayer3.DTX.b背景動画を読めた;
+                bool b背景動画を出す = b背景動画あり && !TJAPlayer3.ConfigIni.bTokkunMode;
+                if( !String.IsNullOrEmpty( TJAPlayer3.DTX.strBGIMAGE_PATH ) || !b背景動画あり ) //背景動画があったら背景画像を描画しない。
                 {
 				    this.t進行描画_背景();
                 }
 
-                if (TJAPlayer3.ConfigIni.bAVI有効 && TJAPlayer3.DTX.listAVI.Count > 0 && !TJAPlayer3.ConfigIni.bTokkunMode)
+                if (b背景動画を出す)
                 {
                     this.t進行描画_AVI();
                 }
@@ -454,17 +457,17 @@ namespace TJAPlayer3
                     else actBackground.On進行描画();
                 }
 
-                if (!TJAPlayer3.ConfigIni.bAVI有効 && !TJAPlayer3.ConfigIni.bTokkunMode)
+                if (!b背景動画を出す && !TJAPlayer3.ConfigIni.bTokkunMode)
                 {
                     actRollChara.On進行描画();
                 }
 
-                if (!TJAPlayer3.ConfigIni.bAVI有効 && !bDoublePlay && TJAPlayer3.ConfigIni.ShowDancer && !TJAPlayer3.ConfigIni.bTokkunMode)
+                if (!b背景動画を出す && !bDoublePlay && TJAPlayer3.ConfigIni.ShowDancer && !TJAPlayer3.ConfigIni.bTokkunMode)
                 {
                     actDancer.On進行描画();
                 }
 
-                if(!TJAPlayer3.ConfigIni.bAVI有効 && !bDoublePlay && TJAPlayer3.ConfigIni.ShowFooter && !TJAPlayer3.ConfigIni.bTokkunMode)
+                if(!b背景動画を出す && !bDoublePlay && TJAPlayer3.ConfigIni.ShowFooter && !TJAPlayer3.ConfigIni.bTokkunMode)
                     this.actFooter.On進行描画();
 
                 //this.t進行描画_グラフ();   // #24074 2011.01.23 add ikanick
@@ -476,7 +479,7 @@ namespace TJAPlayer3
                 if( TJAPlayer3.ConfigIni.ShowChara )
                     this.actChara.On進行描画();
 
-                if(!TJAPlayer3.ConfigIni.bAVI有効 && TJAPlayer3.ConfigIni.ShowMob && !TJAPlayer3.ConfigIni.bTokkunMode)
+                if(!b背景動画を出す && TJAPlayer3.ConfigIni.ShowMob && !TJAPlayer3.ConfigIni.bTokkunMode)
                     this.actMob.On進行描画();
 
                 if ( TJAPlayer3.ConfigIni.eGameMode != EGame.OFF )

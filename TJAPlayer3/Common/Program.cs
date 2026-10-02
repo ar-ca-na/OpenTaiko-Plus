@@ -59,7 +59,6 @@ namespace TJAPlayer3
 		//-----------------------------
 		#endregion
 
-		[STAThread] 
 		#region [ 高DPI対応 ]
 		[System.Runtime.InteropServices.DllImport( "user32.dll" )]
 		private static extern bool SetProcessDpiAwarenessContext( IntPtr value );
@@ -110,6 +109,7 @@ namespace TJAPlayer3
 		/// </summary>
 		internal static bool bShiftHeldAtStartup;
 
+		[STAThread]
 		static void Main()
 		{
 			bShiftHeldAtStartup = ( ( GetAsyncKeyState( 0x10 ) & 0x8000 ) != 0 );	// VK_SHIFT

@@ -13,14 +13,15 @@ using FDK;
 namespace TJAPlayer3
 {
     /// <summary>
-    /// 起動時に GitHub の最新 Release を調べ、新しい版があれば画面の上に 12 秒ほどお知らせを出す。
+    /// 起動時に GitHub の最新 Release を調べ、新しい版があれば画面の上に 20 秒ほどお知らせを出す。
+    /// 出ている間に U キーを押すと、ゲームを閉じて更新し、終わったら起動し直す。
     /// 今の版は exe の隣の scorevideo_version.txt（更新する.bat と同じもの）から読む。
     /// 無ければ（配布物から入れていなければ）調べない。通信に失敗しても何も出さない。
     /// </summary>
     internal static class CUpdateCheck
     {
         private const string 最新版のURL = "https://api.github.com/repos/ar-ca-na/OpenTaiko-Plus/releases/latest";
-        private const int 表示ms = 12000;
+        private const int 表示ms = 20000;
         private const int フェードms = 600;
 
         private static string 今の版;
@@ -121,6 +122,15 @@ namespace TJAPlayer3
                 sw表示 = Stopwatch.StartNew();
             }
 
+            if (TJAPlayer3.Input管理?.Keyboard != null
+                && TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.U))
+            {
+                b表示し終えた = true;
+                TJAPlayer3.tテクスチャの解放(ref txお知らせ);
+                t今すぐ更新する();
+                return;
+            }
+
             long t = sw表示.ElapsedMilliseconds;
             if (t >= 表示ms)
             {
@@ -134,10 +144,42 @@ namespace TJAPlayer3
             txお知らせ.t2D描画(TJAPlayer3.app.Device, (1280 - txお知らせ.sz画像サイズ.Width) / 2, y);
         }
 
+        /// <summary>
+        /// 更新の台本（scorevideo_update.ps1）を「このゲームが閉じるのを待ってから入れ替える」形で起動し、ゲームを閉じる。
+        /// 台本が無い・古い（-WaitPid を知らない）ときは、Release のページをブラウザで開くだけにする。
+        /// </summary>
+        private static void t今すぐ更新する()
+        {
+            string ps1 = Path.Combine(TJAPlayer3.strEXEのあるフォルダ, "scorevideo_update.ps1");
+            try
+            {
+                if (File.Exists(ps1) && File.ReadAllText(ps1).Contains("WaitPid"))
+                {
+                    int pid = Process.GetCurrentProcess().Id;
+                    var psi = new ProcessStartInfo("powershell.exe",
+                        "-NoProfile -ExecutionPolicy Bypass -File \"" + ps1 + "\" -WaitPid " + pid + " -Relaunch")
+                    {
+                        UseShellExecute = true,
+                        WorkingDirectory = TJAPlayer3.strEXEのあるフォルダ,
+                    };
+                    Process.Start(psi);
+                    Trace.TraceInformation("[更新] 更新を始めます。ゲームを閉じます。");
+                    TJAPlayer3.app.Exit();
+                    return;
+                }
+            }
+            catch (Exception e)
+            {
+                Trace.TraceWarning("[更新] 更新を始められませんでした: " + e.Message);
+            }
+            try { Process.Start("https://github.com/ar-ca-na/OpenTaiko-Plus/releases/latest"); }
+            catch (Exception e) { Trace.TraceWarning("[更新] ページを開けませんでした: " + e.Message); }
+        }
+
         private static Bitmap お知らせの絵を作る(string 新, string 今)
         {
             string l1 = "新しい版 " + 新 + " が出ています（いまは " + 今 + "）";
-            string l2 = "ゲームフォルダの「更新する.bat」で更新できます";
+            string l2 = "U キーで今すぐ更新（ゲームを閉じて更新し、起動し直します）";
             string fontName = TJAPlayer3.ConfigIni?.FontName;
             if (string.IsNullOrEmpty(fontName)) fontName = "MS UI Gothic";
 

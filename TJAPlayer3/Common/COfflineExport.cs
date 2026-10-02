@@ -224,8 +224,10 @@ namespace TJAPlayer3
             // 誰も叩かないので、オートでないと譜面がただ流れて全部不可になる。
             TJAPlayer3.ConfigIni.b太鼓パートAutoPlay = true;
             TJAPlayer3.ConfigIni.b太鼓パートAutoPlay2P = true;
+            // 譜面に BGMOVIE があれば動画に入れる（設定の AVI が OFF でも）。読めなければ普段どおりの背景になる。
+            TJAPlayer3.ConfigIni.bAVI有効 = true;
 
-            Write("設定を上書き: 作譜支援モード=OFF / 特訓モード=OFF / オート=1P,2P とも ON");
+            Write("設定を上書き: 作譜支援モード=OFF / 特訓モード=OFF / オート=1P,2P とも ON / 背景動画=ON");
         }
 
         /// <summary>
@@ -292,7 +294,7 @@ namespace TJAPlayer3
         /// <summary>
         /// ffmpeg.exe を探す。人によって置き場所が違うので、順に当たる。
         /// </summary>
-        private static string FindFfmpeg()
+        internal static string FindFfmpeg()
         {
             string exeDir = Path.GetDirectoryName(
                 System.Reflection.Assembly.GetExecutingAssembly().Location);

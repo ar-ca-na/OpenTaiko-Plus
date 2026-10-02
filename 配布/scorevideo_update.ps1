@@ -1,7 +1,9 @@
 ﻿# OpenTaiko 機能追加版 こうしん script
 # 更新する.bat から呼ばれる。GitHub の最新版を落として、適用する.bat と同じ入れ替えを行う。
 # 初めて入れるときも、これを install.ps1 として落とし、OpenTaiko のフォルダを引数に渡して使う。
-param([string]$入れ先 = '')
+# ゲーム内のお知らせ（U キー）からは -WaitPid <ゲームの PID> -Relaunch 付きで呼ばれる。
+# そのときはゲームが閉じるのを待ち、確認なしで入れ替え、終わったらゲームを起動し直す。
+param([string]$入れ先 = '', [int]$WaitPid = 0, [switch]$Relaunch)
 
 $ErrorActionPreference = 'Stop'
 $リポジトリ = 'ar-ca-na/OpenTaiko-Plus'
@@ -17,6 +19,15 @@ $ここ = if ($入れ先) { $入れ先.Trim('"').TrimEnd('\') } else { Split-Pat
 Write-Host ''
 Write-Host '=== OpenTaiko 機能追加版 の入れ替え・更新 ===' -ForegroundColor Cyan
 Write-Host ''
+
+if ($WaitPid -gt 0) {
+    Write-Host 'OpenTaiko が閉じるのを待っています…'
+    try { Wait-Process -Id $WaitPid -Timeout 60 -ErrorAction Stop } catch { }
+    if (Get-Process -Id $WaitPid -ErrorAction SilentlyContinue) {
+        Write-Host 'OpenTaiko が閉じませんでした。閉じてから「更新する.bat」を実行してください。' -ForegroundColor Red
+        待って終わる 1
+    }
+}
 
 if (-not (Test-Path (Join-Path $ここ 'OpenTaiko.exe'))) {
     Write-Host ('ここに OpenTaiko.exe がありません: ' + $ここ) -ForegroundColor Red
@@ -78,8 +89,12 @@ if (Get-Process -Name 'OpenTaiko' -ErrorAction SilentlyContinue) {
 }
 
 Write-Host ''
-$答え = Read-Host $(if ($今の版) { '更新しますか？ 更新するなら y を入れて Enter' } else { '入れますか？ 入れるなら y を入れて Enter' })
-if ($答え -ne 'y') { Write-Host 'やめました。'; 待って終わる 0 }
+if ($WaitPid -gt 0) {
+    Write-Host 'ゲームの中で「更新する」を選んだので、このまま入れ替えます。'
+} else {
+    $答え = Read-Host $(if ($今の版) { '更新しますか？ 更新するなら y を入れて Enter' } else { '入れますか？ 入れるなら y を入れて Enter' })
+    if ($答え -ne 'y') { Write-Host 'やめました。'; 待って終わる 0 }
+}
 
 # --- 落として展開して、入れ替え -----------------------------------------
 $作業 = Join-Path $env:TEMP ('OpenTaiko-Plus-' + [Guid]::NewGuid().ToString('N'))
@@ -104,4 +119,7 @@ catch {
 & powershell -NoProfile -ExecutionPolicy Bypass -File $apply.FullName $ここ
 $code = $LASTEXITCODE
 try { Remove-Item -LiteralPath $作業 -Recurse -Force } catch { }
+if ($Relaunch -and $code -eq 0) {
+    Start-Process -FilePath (Join-Path $ここ 'OpenTaiko.exe') -WorkingDirectory $ここ
+}
 exit $code

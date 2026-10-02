@@ -23,6 +23,15 @@ namespace TJAPlayer3
 
 		public void Start( int nチャンネル番号, CDTX.CAVI rAVI, CDTX.CDirectShow dsBGV, int n開始サイズW, int n開始サイズH, int n終了サイズW, int n終了サイズH, int n画像側開始位置X, int n画像側開始位置Y, int n画像側終了位置X, int n画像側終了位置Y, int n表示側開始位置X, int n表示側開始位置Y, int n表示側終了位置X, int n表示側終了位置Y, int n総移動時間ms, int n移動開始時刻ms )
 		{
+            if ( ( nチャンネル番号 == 0x54 || nチャンネル番号 == 0x5A ) && TJAPlayer3.ConfigIni.bAVI有効
+                && dsBGV != null && dsBGV.ffmpeg動画 != null )
+            {
+                // ffmpeg で開けた動画は、演奏タイマの時刻からコマを決めて描く（実時間の再生はしない）。
+                this.ff動画 = dsBGV;
+                this.ff開始ms = ( n移動開始時刻ms != -1 ) ? n移動開始時刻ms : (long)( CSound管理.rc演奏用タイマ.n現在時刻 * ( ( (double)TJAPlayer3.ConfigIni.n演奏速度 ) / 20.0 ) );
+                this.ff転写したidx = -1;
+                return;
+            }
             if ( ( nチャンネル番号 == 0x54 || nチャンネル番号 == 0x5A ) && TJAPlayer3.ConfigIni.bAVI有効 )
             {
                 this.rAVI = rAVI;
@@ -151,6 +160,11 @@ namespace TJAPlayer3
 				{
 					break;
 				}
+				if ( chip.nチャンネル番号 == 0x54 && chip.rDShow != null && chip.rDShow.ffmpeg動画 != null )
+				{
+					this.Start( chip.nチャンネル番号, chip.rAVI, chip.rDShow, 1280, 720, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, chip.n発声時刻ms );
+					continue;
+				}
 				switch ( chip.eAVI種別 )
 				{
 					case EAVI種別.AVI:
@@ -166,6 +180,7 @@ namespace TJAPlayer3
 		}
 		public void Stop()
 		{
+			this.ff動画 = null;
 			if ( ( this.rAVI != null ) && ( this.rAVI.avi != null ) )
 			{
 				this.n移動開始時刻ms = -1;
@@ -187,6 +202,11 @@ namespace TJAPlayer3
 		}
 		public unsafe int t進行描画( int x, int y )
 		{
+			if ( !base.b活性化してない && this.ff動画 != null )
+			{
+				this.t進行描画_ffmpeg( x, y );
+				return 0;
+			}
 			if ( !base.b活性化してない )
 			{
 				Rectangle rectangle;
@@ -483,6 +503,7 @@ namespace TJAPlayer3
 
         public void tReset()
         {
+            this.ff動画 = null;
             if( this.dsBGV != null )
             {
                 if( this.dsBGV.dshow != null )
@@ -507,11 +528,59 @@ namespace TJAPlayer3
             
         }
 
+		#region [ ffmpeg で開いた BGMOVIE ]
+		// 動画そのものではなく持ち主を覚える（デバイスの作り直しで動画が開き直されても追える）。
+		private CDTX.CDirectShow ff動画;
+		private long ff開始ms;
+		private int ff転写したidx = -1;
+		private CTexture txFf;
+
+		private void t進行描画_ffmpeg( int x, int y )
+		{
+			CFfmpeg動画 v = this.ff動画.ffmpeg動画;
+			if ( v == null ) return;
+			double now = CSound管理.rc演奏用タイマ.n現在時刻 * ( ( (double)TJAPlayer3.ConfigIni.n演奏速度 ) / 20.0 );
+			double t = now - this.ff開始ms;
+			if ( t < 0 ) return;
+			// 書き出し（ゲーム内時刻を 1 コマずつ進める）では、そのコマが届くまで待って必ず合わせる。
+			// 動画が終わったら最後のコマを出したままにする。
+			bool wait = COfflineExport.ShouldFixTime();
+			byte[] buf = v.t取り出す( Math.Min( t, v.長さms - 1 ), wait );
+			if ( buf == null && this.txFf == null ) return;
+
+			if ( this.txFf == null || this.txFf.sz画像サイズ.Width != v.W || this.txFf.sz画像サイズ.Height != v.H )
+			{
+				TJAPlayer3.t安全にDisposeする( ref this.txFf );
+				this.txFf = new CTexture( TJAPlayer3.app.Device, v.W, v.H, Format.A8R8G8B8, Pool.Managed );
+				this.ff転写したidx = -1;
+			}
+			if ( buf != null && v.渡したidx != this.ff転写したidx )
+			{
+				int rowBytes = v.W * 4;
+				DataRectangle dr = this.txFf.texture.LockRectangle( 0, LockFlags.None );
+				try
+				{
+					IntPtr p = dr.Data.DataPointer;
+					for ( int row = 0; row < v.H; row++ )
+						System.Runtime.InteropServices.Marshal.Copy( buf, row * rowBytes, p + row * dr.Pitch, rowBytes );
+				}
+				finally
+				{
+					this.txFf.texture.UnlockRectangle( 0 );
+				}
+				this.ff転写したidx = v.渡したidx;
+			}
+			if ( TJAPlayer3.ConfigIni.eClipDispType == EClipDispType.背景のみ || TJAPlayer3.ConfigIni.eClipDispType == EClipDispType.両方 )
+				this.txFf.t2D描画( TJAPlayer3.app.Device, x + ( 1280 - v.W ) / 2, y + ( 720 - v.H ) / 2 );
+		}
+		#endregion
+
 		// CActivity 実装
 
 		public override void On活性化()
 		{
 			this.rAVI = null;
+			this.ff動画 = null;
 			this.n移動開始時刻ms = -1;
 			this.n前回表示したフレーム番号 = -1;
 			this.bフレームを作成した = false;
@@ -545,6 +614,7 @@ namespace TJAPlayer3
                     this.tx窓描画用.Dispose();
                     this.tx窓描画用 = null;
                 }
+                TJAPlayer3.t安全にDisposeする( ref this.txFf );
 				base.OnManagedリソースの解放();
 			}
 		}

@@ -294,6 +294,7 @@
     <Compile Include="Common\CActFlushGPU.cs" />
     <Compile Include="Common\COfflineExport.cs" />
     <Compile Include="Common\CUpdateCheck.cs" />
+    <Compile Include="Songs\CFfmpeg動画.cs" />
     <Compile Include="Common\CConfigIni.cs" />
     <Compile Include="Common\TJAPlayer3.cs" />
     <Compile Include="Common\CDTXVersion.cs" />

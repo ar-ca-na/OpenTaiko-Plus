@@ -128,6 +128,8 @@ namespace TJAPlayer3
         public class CDirectShow : IDisposable
         {
             public FDK.CDirectShow dshow;
+            /// <summary>ffmpeg で開けたときはこちらを使い、dshow は作らない。</summary>
+            internal CFfmpeg動画 ffmpeg動画;
             private bool bDispose済み;
             public int n番号;
             public string strコメント文 = "";
@@ -149,7 +151,16 @@ namespace TJAPlayer3
                 {
                     Trace.TraceWarning("ファイルが存在しません。({0})({1})", this.strコメント文, str動画ファイル名);
                     this.dshow = null;
+                    return;
                 }
+
+                // まず ffmpeg で開く（mp4 も読め、書き出しの時刻にも合わせられる）。だめなら従来の DirectShow。
+                // リソースの作り直しで再び呼ばれることがあるので、前のものを閉じてから開く。
+                this.ffmpeg動画?.Dispose();
+                this.bDispose済み = false;
+                this.ffmpeg動画 = CFfmpeg動画.t開く(str動画ファイル名);
+                if (this.ffmpeg動画 != null)
+                    return;
 
                 // AVI の生成。
 
@@ -196,6 +207,11 @@ namespace TJAPlayer3
                     Trace.TraceInformation("動画を解放しました。({0})({1})", this.strコメント文, str動画ファイル名);
                 }
 
+                if (this.ffmpeg動画 != null)
+                {
+                    this.ffmpeg動画.Dispose();
+                    this.ffmpeg動画 = null;
+                }
                 this.bDispose済み = true;
             }
             //-----------------
@@ -1499,6 +1515,21 @@ namespace TJAPlayer3
 
         // メソッド
 
+        /// <summary>背景動画（BGMOVIE 等）を 1 本でも読めたか。設定の AVI が ON でも、読めていなければ背景・踊り子を出す。</summary>
+        public bool b背景動画を読めた
+        {
+            get
+            {
+                if (this.listAVI != null)
+                    foreach (CAVI c in this.listAVI.Values)
+                        if (c.avi != null) return true;
+                if (this.listDS != null)
+                    foreach (CDirectShow d in this.listDS.Values)
+                        if (d.dshow != null || d.ffmpeg動画 != null) return true;
+                return false;
+            }
+        }
+
         public void tAVIの読み込み()
         {
             if (this.listAVI != null)
@@ -1538,8 +1569,9 @@ namespace TJAPlayer3
                             }
                         }
 
-                        CDirectShow ds = null;
-                        if (this.listAVI.TryGetValue(chip.n整数値, out CAVI cavi2) && (cavi2.avi != null) || (this.listDS.TryGetValue(chip.n整数値, out ds) && (ds.dshow != null)))
+                        // ds は先に引いておく（短絡評価で AVI 側が通ると ds が引かれず、ffmpeg で開いた動画が使われない）。
+                        this.listDS.TryGetValue(chip.n整数値, out CDirectShow ds);
+                        if (this.listAVI.TryGetValue(chip.n整数値, out CAVI cavi2) && (cavi2.avi != null) || (ds != null && (ds.dshow != null || ds.ffmpeg動画 != null)))
                         {
                             chip.eAVI種別 = EAVI種別.AVI;
                             chip.rAVI = cavi2;
