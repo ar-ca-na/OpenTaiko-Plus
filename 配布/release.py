@@ -195,6 +195,9 @@ def main():
         else:
             shutil.copy2(exe, os.path.join(GAME, "OpenTaiko.exe"))
             shutil.copy2(dll, os.path.join(GAME, "dll", "FDK.dll"))
+            # ゲーム内の「U キーで更新」と 更新する.bat が使う台本も、配布物と同じものにそろえる
+            for f in ("scorevideo_update.ps1", "更新する.bat"):
+                shutil.copy2(os.path.join(HERE, f), os.path.join(GAME, f))
             open(os.path.join(GAME, "scorevideo_version.txt"), "w", newline="\r\n").write(tag + "\n")
             print("ゲームフォルダにも入れました")
 
