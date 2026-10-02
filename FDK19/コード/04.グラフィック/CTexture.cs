@@ -591,6 +591,7 @@ namespace FDK
 
                 device.SetTexture(0, this.texture);
                 device.VertexFormat = TransformedColoredTexturedVertex.Format;
+                t虹色を掛ける(this.cvTransformedColoredVertexies);
                 device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 0, 2, in this.cvTransformedColoredVertexies);
                 //-----------------
                 #endregion
@@ -654,7 +655,8 @@ namespace FDK
 
                 device.SetTexture(0, this.texture);
                 device.VertexFormat = PositionColoredTexturedVertex.Format;
-                device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, in this.cvPositionColoredVertexies);
+                t虹色を掛ける(this.cvPositionColoredVertexies);
+            device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, in this.cvPositionColoredVertexies);
                 //-----------------
                 #endregion
             }
@@ -720,6 +722,7 @@ namespace FDK
 
                 device.SetTexture(0, this.texture);
                 device.VertexFormat = TransformedColoredTexturedVertex.Format;
+                t虹色を掛ける(this.cvTransformedColoredVertexies);
                 device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 0, 2, in this.cvTransformedColoredVertexies);
                 //-----------------
                 #endregion
@@ -783,7 +786,8 @@ namespace FDK
 
                 device.SetTexture(0, this.texture);
                 device.VertexFormat = PositionColoredTexturedVertex.Format;
-                device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, in this.cvPositionColoredVertexies);
+                t虹色を掛ける(this.cvPositionColoredVertexies);
+            device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, in this.cvPositionColoredVertexies);
                 //-----------------
                 #endregion
             }
@@ -866,6 +870,7 @@ namespace FDK
 
             device.SetTexture(0, this.texture);
             device.VertexFormat = TransformedColoredTexturedVertex.Format;
+            t虹色を掛ける(this.cvTransformedColoredVertexies);
             device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, this.cvTransformedColoredVertexies);
         }
         public void t2D上下反転描画(Device device, int x, int y, float depth, Rectangle rc画像内の描画領域)
@@ -925,6 +930,7 @@ namespace FDK
 
             device.SetTexture(0, this.texture);
             device.VertexFormat = TransformedColoredTexturedVertex.Format;
+            t虹色を掛ける(this.cvTransformedColoredVertexies);
             device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, in this.cvTransformedColoredVertexies);
         }
         public void t2D上下反転描画(Device device, Point pt)
@@ -1024,6 +1030,7 @@ namespace FDK
             device.SetTransform(TransformState.World, mat);
             device.SetTexture(0, this.texture);
             device.VertexFormat = PositionColoredTexturedVertex.Format;
+            t虹色を掛ける(this.cvPositionColoredVertexies);
             device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, in this.cvPositionColoredVertexies);
         }
 
@@ -1091,6 +1098,7 @@ namespace FDK
             device.SetTransform(TransformState.World, mat);
             device.SetTexture(0, this.texture);
             device.VertexFormat = PositionColoredTexturedVertex.Format;
+            t虹色を掛ける(this.cvPositionColoredVertexies);
             device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, in this.cvPositionColoredVertexies);
         }
 
@@ -1141,8 +1149,51 @@ namespace FDK
         /// どれか一つが有効になります。
         /// </summary>
         /// <param name="device">Direct3Dのデバイス</param>
+        #region [ 隠し機能: 虹色 ]
+        /// <summary>true のあいだ、すべてのテクスチャが虹色に流れて点滅する（パチンコ風）。</summary>
+        public static bool b虹色;
+        private static readonly Stopwatch sw虹色 = Stopwatch.StartNew();
+
+        private static void t虹色を掛ける(TransformedColoredTexturedVertex[] v)
+        {
+            if (!b虹色) return;
+            for (int i = 0; i < v.Length; i++)
+                v[i].Color = t虹色の頂点色(v[i].Color, v[i].Position.X, v[i].Position.Y);
+        }
+        private static void t虹色を掛ける(PositionColoredTexturedVertex[] v)
+        {
+            if (!b虹色) return;
+            // 回転・3D 描画は座標が画像の中心基準なので、画面の真ん中に置いたものとして色を決める。
+            for (int i = 0; i < v.Length; i++)
+                v[i].Color = t虹色の頂点色(v[i].Color, v[i].Position.X + 640f, 360f - v[i].Position.Y);
+        }
+        /// <summary>
+        /// 画面上の位置と時刻から色相を決め、斜めに流れる虹にする。さらに速く明滅させる。
+        /// Modulate2X で描くので、返す値の 0.5 が元の明るさ、1.0 が 2 倍。
+        /// </summary>
+        private static int t虹色の頂点色(int argb, float x, float y)
+        {
+            float t = sw虹色.ElapsedMilliseconds / 1000f;
+            float h = t * 0.8f - (x + y) / 900f;
+            h -= (float)Math.Floor(h);
+            float r = 虹色_01(Math.Abs(h * 6f - 3f) - 1f);
+            float g = 虹色_01(2f - Math.Abs(h * 6f - 2f));
+            float b = 虹色_01(2f - Math.Abs(h * 6f - 4f));
+            float pulse = 0.8f + 0.2f * (float)Math.Sin(t * 14f);
+
+            int a = (argb >> 24) & 0xFF;
+            int cr = (int)(((argb >> 16) & 0xFF) * (0.25f + 0.75f * r) * pulse);
+            int cg = (int)(((argb >> 8) & 0xFF) * (0.25f + 0.75f * g) * pulse);
+            int cb = (int)((argb & 0xFF) * (0.25f + 0.75f * b) * pulse);
+            return (a << 24) | (cr << 16) | (cg << 8) | cb;
+        }
+        private static float 虹色_01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);
+        #endregion
+
 		private void tレンダリングステートの設定(Device device)
         {
+            // 虹色のときは頂点色を 2 倍で掛ける（0.5 が元の明るさ）。明るく光らせるため。
+            device.SetTextureStageState(0, TextureStage.ColorOperation, b虹色 ? TextureOperation.Modulate2X : TextureOperation.Modulate);
             if (this.b加算合成)
             {
                 device.SetRenderState(RenderState.SourceBlend, SlimDX.Direct3D9.Blend.SourceAlpha);             // 5

@@ -418,6 +418,45 @@ namespace TJAPlayer3
 		private static bool b左クリック今コマ;
 		private static bool b右クリック今コマ;
 
+		#region [ 隠し機能: ↑↑↓↓←→←→BA で全テクスチャが虹色に光る ]
+		private static readonly int[] nコマンドの並び =
+		{
+			(int)SlimDXKeys.Key.UpArrow, (int)SlimDXKeys.Key.UpArrow,
+			(int)SlimDXKeys.Key.DownArrow, (int)SlimDXKeys.Key.DownArrow,
+			(int)SlimDXKeys.Key.LeftArrow, (int)SlimDXKeys.Key.RightArrow,
+			(int)SlimDXKeys.Key.LeftArrow, (int)SlimDXKeys.Key.RightArrow,
+			(int)SlimDXKeys.Key.B, (int)SlimDXKeys.Key.A,
+		};
+		private static int nコマンドの進み;
+
+		/// <summary>キーの並びを見張り、そろったら虹色を切り替える（もう一度で戻る）。Draw の頭で毎コマ呼ぶ。</summary>
+		private static void tコマンドを見張る()
+		{
+			if ( Input管理?.Keyboard?.list入力イベント == null ) return;
+			foreach ( var ev in Input管理.Keyboard.list入力イベント )
+			{
+				if ( !ev.b押された ) continue;
+				if ( ev.nKey == nコマンドの並び[ nコマンドの進み ] )
+					nコマンドの進み++;
+				else
+					nコマンドの進み = ( ev.nKey == nコマンドの並び[ 0 ] ) ? 1 : 0;
+				// ↑↑↑↓… のように↑を余分に押しても、最後の 2 回を始まりとみなす。
+				if ( nコマンドの進み == 1 && ev.nKey == nコマンドの並び[ 0 ] && nコマンドの直前 == nコマンドの並び[ 0 ] )
+					nコマンドの進み = 2;
+				nコマンドの直前 = ev.nKey;
+
+				if ( nコマンドの進み == nコマンドの並び.Length )
+				{
+					nコマンドの進み = 0;
+					CTexture.b虹色 = !CTexture.b虹色;
+					Skin?.sound決定音?.t再生する();
+					Trace.TraceInformation( "虹色: " + ( CTexture.b虹色 ? "ON" : "OFF" ) );
+				}
+			}
+		}
+		private static int nコマンドの直前 = -1;
+		#endregion
+
 		/// <summary>溜まった生の入力を「そのコマぶん」に移す。Draw の頭で 1 回だけ呼ぶ。</summary>
 		internal static void tマウス入力を毎コマ取り込む()
 		{
@@ -700,6 +739,7 @@ namespace TJAPlayer3
             }
             Input管理?.tポーリング( this.bApplicationActive, TJAPlayer3.ConfigIni.bバッファ入力を行う );
             tマウス入力を毎コマ取り込む();
+            tコマンドを見張る();
             FPS?.tカウンタ更新();
 
 			if( this.Device == null )
@@ -1757,6 +1797,7 @@ for (int i = 0; i < 3; i++) {
 				{
 					TJAPlayer3.Tx.Overlay.t2D描画(app.Device, 0, 0);
 				}
+				CUpdateCheck.t描画( r現在のステージ );
 			}
 			this.Device.EndScene();			// Present()は game.csのOnFrameEnd()に登録された、GraphicsDeviceManager.game_FrameEnd() 内で実行されるので不要
 
@@ -2584,6 +2625,8 @@ for (int i = 0; i < 3; i++) {
             StartupTime = Discord.GetUnixTime();
             Discord.UpdatePresence("", Properties.Discord.Stage_StartUp, StartupTime);
             #endregion
+
+            CUpdateCheck.t調べ始める();
 
 
             Trace.TraceInformation( "アプリケーションの初期化を完了しました。" );

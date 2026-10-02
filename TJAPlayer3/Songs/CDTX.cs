@@ -155,7 +155,8 @@ namespace TJAPlayer3
 
                 try
                 {
-                    this.dshow = new FDK.CDirectShow(TJAPlayer3.stage選曲.r確定されたスコア.ファイル情報.フォルダの絶対パス + this.strファイル名, TJAPlayer3.app.WindowHandle, true);
+                    // 選曲画面の結果は --export では無いので、上で作ったパスを使う。
+                    this.dshow = new FDK.CDirectShow(str動画ファイル名, TJAPlayer3.app.WindowHandle, true);
                     Trace.TraceInformation("DirectShowを生成しました。({0})({1})({2}byte)", this.strコメント文, str動画ファイル名, this.dshow.nデータサイズbyte);
                 }
                 catch (Exception e)

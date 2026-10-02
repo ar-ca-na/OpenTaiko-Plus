@@ -4305,9 +4305,22 @@ namespace TJAPlayer3
 		{
 			if ( this.tx背景 != null )
 			{
-				this.tx背景.t2D描画( TJAPlayer3.app.Device, 0, 0 );
+				if ( this.bBGIMAGEを使う )
+				{
+					// 1280x720 以外の画像も、縦横比を保って画面を覆うように拡大縮小し、真ん中に置く。
+					Size sz = this.tx背景.sz画像サイズ;
+					float s = Math.Max( 1280f / sz.Width, 720f / sz.Height );
+					this.tx背景.vc拡大縮小倍率.X = s;
+					this.tx背景.vc拡大縮小倍率.Y = s;
+					this.tx背景.t2D描画( TJAPlayer3.app.Device, ( 1280f - sz.Width * s ) / 2f, ( 720f - sz.Height * s ) / 2f,
+						new RectangleF( 0, 0, sz.Width, sz.Height ) );
+				}
+				else
+					this.tx背景.t2D描画( TJAPlayer3.app.Device, 0, 0 );
 			}
 		}
+		/// <summary>tja の BGIMAGE を読めたとき true。スキンの背景の代わりにこれを描く。</summary>
+		protected bool bBGIMAGEを使う;
 
 		protected void t進行描画_判定文字列1_通常位置指定の場合()
 		{
@@ -4325,10 +4338,21 @@ namespace TJAPlayer3
 		protected abstract void t背景テクスチャの生成();
 		protected void t背景テクスチャの生成( string DefaultBgFilename, Rectangle bgrect, string bgfilename )
 		{
+            this.bBGIMAGEを使う = false;
             try
             {
                 if( !String.IsNullOrEmpty( bgfilename ) )
-                    this.tx背景 = TJAPlayer3.tテクスチャの生成( TJAPlayer3.stage選曲.r確定されたスコア.ファイル情報.フォルダの絶対パス + bgfilename );
+                {
+                    // 譜面のフォルダから探す。選曲画面の結果（r確定されたスコア）は --export や
+                    // 譜面を直接開いたときに無く、例外で背景が空（真っ黒）になっていた。
+                    string folder = TJAPlayer3.DTX?.strフォルダ名;
+                    if( String.IsNullOrEmpty( folder ) )
+                        folder = TJAPlayer3.stage選曲.r確定されたスコア.ファイル情報.フォルダの絶対パス;
+                    this.tx背景 = TJAPlayer3.tテクスチャの生成( System.IO.Path.Combine( folder, bgfilename ) );
+                    this.bBGIMAGEを使う = ( this.tx背景 != null );
+                    if( this.tx背景 == null )
+                        this.tx背景 = TJAPlayer3.tテクスチャの生成( CSkin.Path( DefaultBgFilename ) );
+                }
                 else
                     this.tx背景 = TJAPlayer3.tテクスチャの生成( CSkin.Path( DefaultBgFilename ) );
             }

@@ -447,8 +447,9 @@ namespace TJAPlayer3
                 {
                     this.t進行描画_AVI();
                 }
-                else if (TJAPlayer3.ConfigIni.bBGA有効)
+                else if (TJAPlayer3.ConfigIni.bBGA有効 && !(this.bBGIMAGEを使う && !TJAPlayer3.ConfigIni.bTokkunMode))
                 {
+                    // BGIMAGE を読めたときは、スキンの背景（画面全体を覆う）の代わりにそれを見せる。
                     if (TJAPlayer3.ConfigIni.bTokkunMode) actTokkun.On進行描画_背景();
                     else actBackground.On進行描画();
                 }
