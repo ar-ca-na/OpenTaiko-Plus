@@ -354,8 +354,8 @@ namespace TJAPlayer3
 			        this.soundAdlib = TJAPlayer3.Sound管理.tサウンドを生成する( CSkin.Path(@"Sounds\Taiko\Adlib.ogg"), ESoundGroup.SoundEffect );
                     // 2 人プレイの 2P（右から鳴る側）は、スキンに don_2P.ogg / ka_2P.ogg があればそちらを使う。
                     bool b2Pの音 = TJAPlayer3.ConfigIni.nPlayerCount >= 2;
-                    this.soundRed2 = TJAPlayer3.Sound管理.tサウンドを生成する(t2Pの打音(@"Sounds\Taiko\dong.ogg", @"Sounds\Taiko\don_2P.ogg", b2Pの音), ESoundGroup.SoundEffect);
-                    this.soundBlue2 = TJAPlayer3.Sound管理.tサウンドを生成する(t2Pの打音(@"Sounds\Taiko\ka.ogg", @"Sounds\Taiko\ka_2P.ogg", b2Pの音), ESoundGroup.SoundEffect);
+                    this.soundRed2 = t2Pの打音(@"Sounds\Taiko\dong.ogg", @"Sounds\Taiko\don_2P.ogg", b2Pの音);
+                    this.soundBlue2 = t2Pの打音(@"Sounds\Taiko\ka.ogg", @"Sounds\Taiko\ka_2P.ogg", b2Pの音);
                     this.soundAdlib2 = TJAPlayer3.Sound管理.tサウンドを生成する(CSkin.Path(@"Sounds\Taiko\Adlib.ogg"), ESoundGroup.SoundEffect);
 
 
@@ -373,10 +373,16 @@ namespace TJAPlayer3
 			    base.OnManagedリソースの作成();
 			}
 		}
-		private static string t2Pの打音(string str共通, string str2P, bool b2Pの音)
+		private static CSound t2Pの打音(string str共通, string str2P, bool b2Pの音)
 		{
 			string path = CSkin.Path(str2P);
-			return (b2Pの音 && File.Exists(path)) ? path : CSkin.Path(str共通);
+			if (b2Pの音 && File.Exists(path))
+			{
+				// 読めない音（拡張子だけ .ogg の WAV など）でゲームごと落ちないよう、そのときは 1P と同じ音にする
+				try { return TJAPlayer3.Sound管理.tサウンドを生成する(path, ESoundGroup.SoundEffect); }
+				catch (Exception e) { Trace.TraceWarning("2P の打音を読めないので、1P と同じ音にします: " + path + " (" + e.Message + ")"); }
+			}
+			return TJAPlayer3.Sound管理.tサウンドを生成する(CSkin.Path(str共通), ESoundGroup.SoundEffect);
 		}
 		public override void OnManagedリソースの解放()
 		{
