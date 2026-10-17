@@ -108,7 +108,7 @@ try {
     Copy-Item (Join-Path $中身 'dll\FDK.dll') $先FDK -Force
     Copy-Item (Join-Path $中身 '譜面を動画にする.bat') (Join-Path $先 '譜面を動画にする.bat') -Force
     # 更新用。実行中の 更新する.bat を書き換えると cmd が読み違えるので、中身が違うときだけ写す
-    foreach ($名前 in @('更新する.bat', 'scorevideo_update.ps1', 'scorevideo_version.txt')) {
+    foreach ($名前 in @('更新する.bat', '前の版に戻す.bat', 'scorevideo_update.ps1', 'scorevideo_version.txt')) {
         $元 = Join-Path $中身 $名前
         $行き先 = Join-Path $先 $名前
         if (-not (Test-Path $元)) { continue }
