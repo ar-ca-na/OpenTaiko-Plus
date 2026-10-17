@@ -301,6 +301,15 @@ namespace TJAPlayer3
             return base.On進行描画();
         }
 
+        // 風船を割るキャラの高さ。2P はスキンの値（Game_Chara_Balloon_Y の 2 つ目）を使わず、
+        // 1P の高さをレーンの間隔（nScrollFieldY の差）だけ下げた位置にする。
+        // ニジイロ系スキンは 2P が 297 で、レーンに対して 1P より 120px 下にずれていたため。
+        private int n風船のY(int player)
+        {
+            int y1P = TJAPlayer3.Skin.Characters_Balloon_Y[this.iCurrentCharacter[player]][0];
+            return y1P + (TJAPlayer3.Skin.nScrollFieldY[player] - TJAPlayer3.Skin.nScrollFieldY[0]);
+        }
+
         public void OnDraw_Balloon()
         {
             for (int i = 0; i < TJAPlayer3.ConfigIni.nPlayerCount; i++)
@@ -323,7 +332,7 @@ namespace TJAPlayer3
                         if (TJAPlayer3.Tx.Characters_Balloon_Broke[this.iCurrentCharacter[i]][CharaAction_Balloon_Broke[i].n現在の値] != null)
                         {
                             TJAPlayer3.Tx.Characters_Balloon_Broke[this.iCurrentCharacter[i]][CharaAction_Balloon_Broke[i].n現在の値].Opacity = nowOpacity;
-                            TJAPlayer3.Tx.Characters_Balloon_Broke[this.iCurrentCharacter[i]][CharaAction_Balloon_Broke[i].n現在の値].t2D描画(TJAPlayer3.app.Device, (TJAPlayer3.Skin.nScrollFieldX[0] - TJAPlayer3.stage演奏ドラム画面.actLaneTaiko.nDefaultJudgePos[0, 0]) + TJAPlayer3.Skin.Characters_Balloon_X[this.iCurrentCharacter[i]][0], TJAPlayer3.Skin.Characters_Balloon_Y[this.iCurrentCharacter[i]][i]);
+                            TJAPlayer3.Tx.Characters_Balloon_Broke[this.iCurrentCharacter[i]][CharaAction_Balloon_Broke[i].n現在の値].t2D描画(TJAPlayer3.app.Device, (TJAPlayer3.Skin.nScrollFieldX[0] - TJAPlayer3.stage演奏ドラム画面.actLaneTaiko.nDefaultJudgePos[0, 0]) + TJAPlayer3.Skin.Characters_Balloon_X[this.iCurrentCharacter[i]][0], this.n風船のY(i));
                         }
                         TJAPlayer3.stage演奏ドラム画面.PuchiChara.On進行描画((TJAPlayer3.Skin.nScrollFieldX[0] - TJAPlayer3.stage演奏ドラム画面.actLaneTaiko.nDefaultJudgePos[0, 0]) + TJAPlayer3.Skin.Game_PuchiChara_BalloonX[0], TJAPlayer3.Skin.Game_PuchiChara_BalloonY[i], false, nowOpacity, true, player : i);
                         if (CharaAction_Balloon_Broke[i].b終了値に達した)
@@ -342,7 +351,7 @@ namespace TJAPlayer3
                         if (TJAPlayer3.Tx.Characters_Balloon_Miss[this.iCurrentCharacter[i]][CharaAction_Balloon_Miss[i].n現在の値] != null)
                         {
                             TJAPlayer3.Tx.Characters_Balloon_Miss[this.iCurrentCharacter[i]][CharaAction_Balloon_Miss[i].n現在の値].Opacity = nowOpacity;
-                            TJAPlayer3.Tx.Characters_Balloon_Miss[this.iCurrentCharacter[i]][CharaAction_Balloon_Miss[i].n現在の値].t2D描画(TJAPlayer3.app.Device, (TJAPlayer3.Skin.nScrollFieldX[0] - TJAPlayer3.stage演奏ドラム画面.actLaneTaiko.nDefaultJudgePos[0, 0]) + TJAPlayer3.Skin.Characters_Balloon_X[this.iCurrentCharacter[i]][0], TJAPlayer3.Skin.Characters_Balloon_Y[this.iCurrentCharacter[i]][i]);
+                            TJAPlayer3.Tx.Characters_Balloon_Miss[this.iCurrentCharacter[i]][CharaAction_Balloon_Miss[i].n現在の値].t2D描画(TJAPlayer3.app.Device, (TJAPlayer3.Skin.nScrollFieldX[0] - TJAPlayer3.stage演奏ドラム画面.actLaneTaiko.nDefaultJudgePos[0, 0]) + TJAPlayer3.Skin.Characters_Balloon_X[this.iCurrentCharacter[i]][0], this.n風船のY(i));
                         }
                         TJAPlayer3.stage演奏ドラム画面.PuchiChara.On進行描画((TJAPlayer3.Skin.nScrollFieldX[0] - TJAPlayer3.stage演奏ドラム画面.actLaneTaiko.nDefaultJudgePos[0, 0]) + TJAPlayer3.Skin.Game_PuchiChara_BalloonX[0], TJAPlayer3.Skin.Game_PuchiChara_BalloonY[i], false, nowOpacity, true, player : i);
                         if (CharaAction_Balloon_Miss[i].b終了値に達した)
@@ -354,7 +363,7 @@ namespace TJAPlayer3
                     }
                     else if (CharaAction_Balloon_Breaking[i]?.b進行中 == true && TJAPlayer3.Skin.Characters_Balloon_Breaking_Ptn[this.iCurrentCharacter[i]] != 0)
                     {
-                        TJAPlayer3.Tx.Characters_Balloon_Breaking[this.iCurrentCharacter[i]][CharaAction_Balloon_Breaking[i].n現在の値]?.t2D描画(TJAPlayer3.app.Device, (TJAPlayer3.Skin.nScrollFieldX[0] - TJAPlayer3.stage演奏ドラム画面.actLaneTaiko.nDefaultJudgePos[0, 0]) + TJAPlayer3.Skin.Characters_Balloon_X[this.iCurrentCharacter[i]][0], TJAPlayer3.Skin.Characters_Balloon_Y[this.iCurrentCharacter[i]][i]);
+                        TJAPlayer3.Tx.Characters_Balloon_Breaking[this.iCurrentCharacter[i]][CharaAction_Balloon_Breaking[i].n現在の値]?.t2D描画(TJAPlayer3.app.Device, (TJAPlayer3.Skin.nScrollFieldX[0] - TJAPlayer3.stage演奏ドラム画面.actLaneTaiko.nDefaultJudgePos[0, 0]) + TJAPlayer3.Skin.Characters_Balloon_X[this.iCurrentCharacter[i]][0], this.n風船のY(i));
                         TJAPlayer3.stage演奏ドラム画面.PuchiChara.On進行描画((TJAPlayer3.Skin.nScrollFieldX[0] - TJAPlayer3.stage演奏ドラム画面.actLaneTaiko.nDefaultJudgePos[0, 0]) + TJAPlayer3.Skin.Game_PuchiChara_BalloonX[0], TJAPlayer3.Skin.Game_PuchiChara_BalloonY[i], false, 255, true, player : i);
                     }
 
