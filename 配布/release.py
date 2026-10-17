@@ -27,7 +27,8 @@ GAME_FILE = os.path.join(HERE, "game_path.txt")
 TOP = "OpenTaiko機能追加版"                     # ZIP の中のフォルダ名
 # ZIP 直下に置くもの / 中身\ に置くもの
 TOP_FILES = ["はじめにお読みください.txt", "LICENSE.txt", "適用する.bat", "apply.ps1"]
-INNER_FILES = ["譜面を動画にする.bat", "更新する.bat", "前の版に戻す.bat", "scorevideo_update.ps1"]
+INNER_FILES = ["譜面を動画にする.bat", "更新する.bat", "前の版に戻す.bat", "scorevideo_update.ps1",
+               "修復/OpenTaiko修復.bat", "修復/opentaiko_repair.ps1"]   # 修復/ のものは 中身 の直下に置く
 
 
 def run(*a, **kw):
@@ -136,7 +137,7 @@ def main():
         for f in TOP_FILES:
             add_text(f, f"{TOP}/{f}")
         for f in INNER_FILES:
-            add_text(f, f"{TOP}/中身/{f}")
+            add_text(f, f"{TOP}/中身/{os.path.basename(f)}")
         z.writestr(f"{TOP}/中身/scorevideo_version.txt", tag + "\r\n")
         z.write(exe, f"{TOP}/中身/OpenTaiko.exe")
         z.write(dll, f"{TOP}/中身/dll/FDK.dll")
@@ -196,8 +197,8 @@ def main():
             shutil.copy2(exe, os.path.join(GAME, "OpenTaiko.exe"))
             shutil.copy2(dll, os.path.join(GAME, "dll", "FDK.dll"))
             # ゲーム内の「U キーで更新」と 更新する.bat が使う台本も、配布物と同じものにそろえる
-            for f in ("scorevideo_update.ps1", "更新する.bat", "前の版に戻す.bat"):
-                shutil.copy2(os.path.join(HERE, f), os.path.join(GAME, f))
+            for f in ("scorevideo_update.ps1", "更新する.bat", "前の版に戻す.bat", "修復/OpenTaiko修復.bat", "修復/opentaiko_repair.ps1"):
+                shutil.copy2(os.path.join(HERE, f), os.path.join(GAME, os.path.basename(f)))
             open(os.path.join(GAME, "scorevideo_version.txt"), "w", newline="\r\n").write(tag + "\n")
             print("ゲームフォルダにも入れました")
 
