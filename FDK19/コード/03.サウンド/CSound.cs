@@ -41,7 +41,7 @@ namespace FDK
 		/// あとから同じ位置に並べ直して打音の音声を作る。
 		/// 書き出し側が使うときだけ差し込む（普段は null で、何もしない）。
 		/// </summary>
-		public static Action<string, double> 鳴った音を知らせる = null;
+		public static Action<string, double, int> 鳴った音を知らせる = null;	// ファイル名・音量・左右（-100=左 ～ 100=右）
 
 		private static ESoundDeviceType SoundDeviceType
 		{
@@ -1314,7 +1314,7 @@ namespace FDK
 				&& this.SoundGroup != ESoundGroup.SongPreview
 				&& !string.IsNullOrEmpty( this.strファイル名 ) )
 			{
-				try { CSound管理.鳴った音を知らせる( this.strファイル名, this.d実効音量 ); }
+				try { CSound管理.鳴った音を知らせる( this.strファイル名, this.d実効音量, Math.Min( Math.Max( this.n位置, -100 ), 100 ) ); }
 				catch { }
 			}
 

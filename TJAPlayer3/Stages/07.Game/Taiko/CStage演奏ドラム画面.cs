@@ -352,8 +352,10 @@ namespace TJAPlayer3
 			        this.soundRed = TJAPlayer3.Sound管理.tサウンドを生成する( CSkin.Path( @"Sounds\Taiko\dong.ogg" ), ESoundGroup.SoundEffect );
 			        this.soundBlue = TJAPlayer3.Sound管理.tサウンドを生成する( CSkin.Path( @"Sounds\Taiko\ka.ogg" ), ESoundGroup.SoundEffect );
 			        this.soundAdlib = TJAPlayer3.Sound管理.tサウンドを生成する( CSkin.Path(@"Sounds\Taiko\Adlib.ogg"), ESoundGroup.SoundEffect );
-                    this.soundRed2 = TJAPlayer3.Sound管理.tサウンドを生成する(CSkin.Path(@"Sounds\Taiko\dong.ogg"), ESoundGroup.SoundEffect);
-                    this.soundBlue2 = TJAPlayer3.Sound管理.tサウンドを生成する(CSkin.Path(@"Sounds\Taiko\ka.ogg"), ESoundGroup.SoundEffect);
+                    // 2 人プレイの 2P（右から鳴る側）は、スキンに don_2P.ogg / ka_2P.ogg があればそちらを使う。
+                    bool b2Pの音 = TJAPlayer3.ConfigIni.nPlayerCount >= 2;
+                    this.soundRed2 = TJAPlayer3.Sound管理.tサウンドを生成する(t2Pの打音(@"Sounds\Taiko\dong.ogg", @"Sounds\Taiko\don_2P.ogg", b2Pの音), ESoundGroup.SoundEffect);
+                    this.soundBlue2 = TJAPlayer3.Sound管理.tサウンドを生成する(t2Pの打音(@"Sounds\Taiko\ka.ogg", @"Sounds\Taiko\ka_2P.ogg", b2Pの音), ESoundGroup.SoundEffect);
                     this.soundAdlib2 = TJAPlayer3.Sound管理.tサウンドを生成する(CSkin.Path(@"Sounds\Taiko\Adlib.ogg"), ESoundGroup.SoundEffect);
 
 
@@ -370,6 +372,11 @@ namespace TJAPlayer3
 
 			    base.OnManagedリソースの作成();
 			}
+		}
+		private static string t2Pの打音(string str共通, string str2P, bool b2Pの音)
+		{
+			string path = CSkin.Path(str2P);
+			return (b2Pの音 && File.Exists(path)) ? path : CSkin.Path(str共通);
 		}
 		public override void OnManagedリソースの解放()
 		{
@@ -1440,9 +1447,13 @@ namespace TJAPlayer3
                     int x = 0;
                     int y = TJAPlayer3.Skin.nScrollFieldY[nPlayer];// + ((int)(pChip.nコース) * 100)
 
-                    if (pChip.nノーツ移動開始時刻ms != 0 && (nPlayTime < pChip.n発声時刻ms - pChip.nノーツ移動開始時刻ms))
+                    // #SUDDEN の移動待機中は、動き出す瞬間の位置で止めておく。
+                    // 普段のスクロール（nバーからの距離dot.Taiko）と同じ式にしないと、動き出した瞬間に位置が飛ぶ
+                    // （元は (速度 + 1.5) / 628.7 で、約 4.2 倍右に出ていた）。
+                    bool b移動待機中 = pChip.nノーツ移動開始時刻ms != 0 && (nPlayTime < pChip.n発声時刻ms - pChip.nノーツ移動開始時刻ms);
+                    if (b移動待機中)
                     {
-                        x = (int)( ( ( ( pChip.n発声時刻ms ) - ( pChip.n発声時刻ms - pChip.nノーツ移動開始時刻ms ) ) * pChip.dbBPM * pChip.dbSCROLL * ( this.act譜面スクロール速度.db現在の譜面スクロール速度.Drums + 1.5 ) ) / 628.7 );
+                        x = (int)(pChip.nノーツ移動開始時刻ms * pChip.dbBPM * pChip.dbSCROLL * (this.act譜面スクロール速度.db現在の譜面スクロール速度.Drums + 1.0) / 502.8594 / 5.0);
                     }
                     else
                     {
@@ -1513,7 +1524,7 @@ namespace TJAPlayer3
 
                         y = TJAPlayer3.Skin.nScrollFieldY[nPlayer];
                         if (TJAPlayer3.ConfigIni.eScrollMode == EScrollMode.Normal)
-                            y += (int)(((pChip.n発声時刻ms - CSound管理.rc演奏用タイマ.n現在時刻) * pChip.dbBPM * pChip.dbSCROLL_Y * (this.act譜面スクロール速度.db現在の譜面スクロール速度.Drums + 1.0)) / 502.8594 / 5.0);
+                            y += (int)(((b移動待機中 ? pChip.nノーツ移動開始時刻ms : pChip.n発声時刻ms - CSound管理.rc演奏用タイマ.n現在時刻) * pChip.dbBPM * pChip.dbSCROLL_Y * (this.act譜面スクロール速度.db現在の譜面スクロール速度.Drums + 1.0)) / 502.8594 / 5.0);
                         else if (TJAPlayer3.ConfigIni.eScrollMode == EScrollMode.BMSCROLL || TJAPlayer3.ConfigIni.eScrollMode == EScrollMode.HBSCROLL)
                         {
                             float? play_bpm_time = null;

@@ -72,6 +72,7 @@ namespace TJAPlayer3
             public long コマ;
             public string パス;
             public double 音量;
+            public int 位置;     // -100=左 ～ 100=右（2 人プレイは 1P が左・2P が右）
         }
         private static List<S鳴った音> 鳴った音リスト;
         private static bool finished;
@@ -551,11 +552,11 @@ namespace TJAPlayer3
         /// 遊びながら録るモードで、音が鳴るたびに呼ばれる。
         /// ここでは並べ直すのに要る情報だけ控える（音そのものは触らない）。
         /// </summary>
-        private static void 音が鳴った(string パス, double 音量)
+        private static void 音が鳴った(string パス, double 音量, int 位置)
         {
             if (鳴った音リスト == null || !capturing) return;
             if (鳴った音リスト.Count > 200000) return;   // 念のための歯止め
-            鳴った音リスト.Add(new S鳴った音 { コマ = frame, パス = パス, 音量 = 音量 });
+            鳴った音リスト.Add(new S鳴った音 { コマ = frame, パス = パス, 音量 = 音量, 位置 = 位置 });
         }
 
         private static void WriteAudioForOneFrame()
@@ -687,14 +688,18 @@ namespace TJAPlayer3
                         if (st + wlen <= b) continue;
 
                         float v = (float)鳴った音リスト[i].音量;
+                        // BASS の PAN（ステレオの音では左右のバランス）と同じ掛け方: 左へ振るほど右を絞る
+                        float pan = 鳴った音リスト[i].位置 / 100f;
+                        float vL = v * Math.Min(1f, 1f - pan);
+                        float vR = v * Math.Min(1f, 1f + pan);
                         long 始 = Math.Max(b, st);
                         long 終 = Math.Min(終わり, st + wlen);
                         for (long q = 始; q < 終; q++)
                         {
                             int d = (int)((q - b) * ch);
                             int t = (int)((q - st) * ch);
-                            混ぜる[d] += w[t] * v;
-                            混ぜる[d + 1] += w[t + 1] * v;
+                            混ぜる[d] += w[t] * vL;
+                            混ぜる[d + 1] += w[t + 1] * vR;
                         }
                     }
 
