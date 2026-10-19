@@ -32,11 +32,11 @@ namespace TJAPlayer3
 		{
             if( !string.IsNullOrEmpty( TJAPlayer3.ConfigIni.FontName) )
             {
-                this.pfMusicName = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), TJAPlayer3.Skin.Result_MusicName_FontSize);
+                this.pfMusicName = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), TJAPlayer3.Skin.Result_MusicName_FontSize);
             }
             else
             {
-                this.pfMusicName = new CPrivateFastFont(new FontFamily("MS UI Gothic"), TJAPlayer3.Skin.Result_MusicName_FontSize);
+                this.pfMusicName = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), TJAPlayer3.Skin.Result_MusicName_FontSize);
             }
 
 		    // After performing calibration, inform the player that

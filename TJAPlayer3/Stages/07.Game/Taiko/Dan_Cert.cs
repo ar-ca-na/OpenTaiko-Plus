@@ -127,9 +127,9 @@ namespace TJAPlayer3
             this.ct虹透明度 = new CCounter(0, TJAPlayer3.Skin.Game_Gauge_Rainbow_Timer - 1, 1, TJAPlayer3.Timer);
 
             if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
-                this.pfExamFont = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 14);
+                this.pfExamFont = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 14);
             else
-                this.pfExamFont = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 14);
+                this.pfExamFont = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 14);
 
             this.ttkExams = new TitleTextureKey[(int)Exam.Type.Accuracy + 1];
             for (int i = 0; i < this.ttkExams.Length; i++)

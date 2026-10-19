@@ -107,14 +107,14 @@ namespace TJAPlayer3
 				return;
 
 			if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
-				this.pfMenuTitle = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 36);
+				this.pfMenuTitle = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 36);
 			else
-				this.pfMenuTitle = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 36);
+				this.pfMenuTitle = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 36);
 
 			if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.BoxFontName))
-				this.pfBoxText = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.BoxFontName), 15);
+				this.pfBoxText = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.BoxFontName), 15);
 			else
-				this.pfBoxText = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 15);
+				this.pfBoxText = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 15);
 
 			this.ttkEnsou = new TitleTextureKey(CLangManager.LangInstance.GetString(100), this.pfMenuTitle, Color.White, Color.FromArgb(233, 53, 71), 700, Color.Black);
 			this.ttkDan = new TitleTextureKey(CLangManager.LangInstance.GetString(101), this.pfMenuTitle, Color.White, Color.FromArgb(71, 64, 135), 700, Color.Black);

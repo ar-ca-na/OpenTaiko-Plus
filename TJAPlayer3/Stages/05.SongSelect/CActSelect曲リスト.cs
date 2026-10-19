@@ -654,21 +654,21 @@ namespace TJAPlayer3
 			
             if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
             {
-                this.pfBoxName = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 28);
-                this.pfMusicName = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 22);
-                this.pfSubtitle = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 13);
+                this.pfBoxName = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 28);
+                this.pfMusicName = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 22);
+                this.pfSubtitle = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 13);
 			}
             else
             {
-                this.pfBoxName = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 28);
-                this.pfMusicName = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 22);
-                this.pfSubtitle = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 13);
+                this.pfBoxName = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 28);
+                this.pfMusicName = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 22);
+                this.pfSubtitle = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 13);
 			}
 
 			if(!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.BoxFontName))
-				this.pfBoxText = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.BoxFontName), 14);
+				this.pfBoxText = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.BoxFontName), 14);
 			else
-				this.pfBoxText = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 14);
+				this.pfBoxText = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 14);
 
 
 			this.b登場アニメ全部完了 = false;
@@ -680,7 +680,7 @@ namespace TJAPlayer3
 			// 曲リスト文字は２倍（面積４倍）でテクスチャに描画してから縮小表示するので、フォントサイズは２倍とする。
 
 			FontStyle regular = FontStyle.Regular;
-			this.ft曲リスト用フォント = new Font( TJAPlayer3.ConfigIni.FontName, 40f, regular, GraphicsUnit.Pixel );
+			this.ft曲リスト用フォント = new Font( CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 40f, regular, GraphicsUnit.Pixel );
 			
 			// 現在選択中の曲がない（＝はじめての活性化）なら、現在選択中の曲をルートの先頭ノードに設定する。
 

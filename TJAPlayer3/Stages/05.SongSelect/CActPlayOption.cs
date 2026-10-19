@@ -205,7 +205,7 @@ namespace TJAPlayer3
 
         public CTexture OptionTypeTx(string str文字, Color forecolor, Color backcolor)
         {
-            using (var bmp = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 13).DrawPrivateFont(str文字, forecolor, backcolor))
+            using (var bmp = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 13).DrawPrivateFont(str文字, forecolor, backcolor))
             {
                 return TJAPlayer3.tテクスチャの生成(bmp);
             }

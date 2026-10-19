@@ -36,13 +36,13 @@ namespace TJAPlayer3
 				this.strSTAGEFILE = "";
                 if( !string.IsNullOrEmpty( TJAPlayer3.ConfigIni.FontName ) )
                 {
-                    this.pfTITLE = new CPrivateFastFont( new FontFamily( TJAPlayer3.ConfigIni.FontName ), TJAPlayer3.Skin.SongLoading_Title_FontSize );
-                    this.pfSUBTITLE = new CPrivateFastFont( new FontFamily( TJAPlayer3.ConfigIni.FontName ), TJAPlayer3.Skin.SongLoading_SubTitle_FontSize);
+                    this.pfTITLE = new CPrivateFastFont( CFontResolver.Family( TJAPlayer3.ConfigIni.FontName ), TJAPlayer3.Skin.SongLoading_Title_FontSize );
+                    this.pfSUBTITLE = new CPrivateFastFont( CFontResolver.Family( TJAPlayer3.ConfigIni.FontName ), TJAPlayer3.Skin.SongLoading_SubTitle_FontSize);
                 }
                 else
                 {
-                    this.pfTITLE = new CPrivateFastFont( new FontFamily("MS UI Gothic"), TJAPlayer3.Skin.SongLoading_Title_FontSize);
-                    this.pfSUBTITLE = new CPrivateFastFont( new FontFamily("MS UI Gothic" ), TJAPlayer3.Skin.SongLoading_SubTitle_FontSize);
+                    this.pfTITLE = new CPrivateFastFont( CFontResolver.Family("MS UI Gothic"), TJAPlayer3.Skin.SongLoading_Title_FontSize);
+                    this.pfSUBTITLE = new CPrivateFastFont( CFontResolver.Family("MS UI Gothic" ), TJAPlayer3.Skin.SongLoading_SubTitle_FontSize);
                 }
 				this.nBGM再生開始時刻 = -1;
 				this.nBGMの総再生時間ms = 0;
@@ -466,13 +466,13 @@ namespace TJAPlayer3
                                 var pfSubTitle = new CPrivateFont();
                                 if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
                                 {
-                                    pfTitle = new CPrivateFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 30);
-                                    pfSubTitle = new CPrivateFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 22);
+                                    pfTitle = new CPrivateFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 30);
+                                    pfSubTitle = new CPrivateFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 22);
                                 }
                                 else
                                 {
-                                    pfTitle = new CPrivateFont(new FontFamily("MS UI Gothic"), 30);
-                                    pfSubTitle = new CPrivateFont(new FontFamily("MS UI Gothic"), 22);
+                                    pfTitle = new CPrivateFont(CFontResolver.Family("MS UI Gothic"), 30);
+                                    pfSubTitle = new CPrivateFont(CFontResolver.Family("MS UI Gothic"), 22);
                                 }
 
                                 var titleForeColor = TJAPlayer3.Skin.Game_DanC_Title_ForeColor;

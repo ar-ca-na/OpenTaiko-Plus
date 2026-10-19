@@ -132,9 +132,9 @@ namespace TJAPlayer3
                 }
 
                 if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
-                    pfGENRE = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.BoxFontName), 12);
+                    pfGENRE = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.BoxFontName), 12);
                 else
-                    pfGENRE = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 12);
+                    pfGENRE = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 12);
 
                 this.ttkGENRE = new TitleTextureKey(genreName, this.pfGENRE, Color.White, Color.Black, 1000);
 
@@ -193,8 +193,8 @@ namespace TJAPlayer3
 		{
             if( !string.IsNullOrEmpty( TJAPlayer3.ConfigIni.FontName ) )
             {
-                this.pfMusicName = new CPrivateFastFont( new FontFamily( TJAPlayer3.ConfigIni.FontName), TJAPlayer3.Skin.Game_MusicName_FontSize);
-                //this.pf縦書きテスト = new CPrivateFastFont( new FontFamily( CDTXMania.ConfigIni.strPrivateFontで使うフォント名 ), 22 );
+                this.pfMusicName = new CPrivateFastFont( CFontResolver.Family( TJAPlayer3.ConfigIni.FontName), TJAPlayer3.Skin.Game_MusicName_FontSize);
+                //this.pf縦書きテスト = new CPrivateFastFont( CFontResolver.Family( CDTXMania.ConfigIni.strPrivateFontで使うフォント名 ), 22 );
             }
 
 			this.txPanel = null;

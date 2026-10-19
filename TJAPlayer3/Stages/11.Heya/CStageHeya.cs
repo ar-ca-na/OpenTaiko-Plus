@@ -38,9 +38,9 @@ namespace TJAPlayer3
 
 
             if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
-                this.pfHeyaFont = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 14);
+                this.pfHeyaFont = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 14);
             else
-                this.pfHeyaFont = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 14);
+                this.pfHeyaFont = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 14);
 
 
             // 1P, configure later for default 2P

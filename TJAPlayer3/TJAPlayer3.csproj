@@ -303,6 +303,7 @@
     <Compile Include="Common\CPad.cs" />
     <Compile Include="Common\CPrivateFastFont.cs" />
     <Compile Include="Common\CVeirticalSongNameFont.cs" />
+    <Compile Include="Common\CFontResolver.cs" />
     <Compile Include="Common\CPrivateFont.cs" />
     <Compile Include="Common\CSkin.cs" />
     <Compile Include="Common\C定数.cs" />

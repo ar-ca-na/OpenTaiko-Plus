@@ -94,11 +94,11 @@ namespace TJAPlayer3
 
             if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
             {
-                this.pfTowerText = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 28);
+                this.pfTowerText = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 28);
             }
             else
             {
-                this.pfTowerText = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 28);
+                this.pfTowerText = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 28);
             }
 
             this.ttkTouTatsuKaiSuu = new TitleTextureKey(CLangManager.LangInstance.GetString(1000), pfTowerText, Color.White, Color.Black, 700);

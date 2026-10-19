@@ -53,14 +53,14 @@ namespace TJAPlayer3
             stバー情報 = new STバー情報[TJAPlayer3.Songs管理.list曲ルート_Dan.Count];
 
             if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
-                pfDanSong = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 24);
+                pfDanSong = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 24);
             else
-                pfDanSong = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 16);
+                pfDanSong = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 16);
 
             if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
-                this.pfExamFont = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 13);
+                this.pfExamFont = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 13);
             else
-                this.pfExamFont = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 13);
+                this.pfExamFont = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 13);
 
             this.ttkExams = new TitleTextureKey[(int)Exam.Type.Accuracy + 1];
             for (int i = 0; i < this.ttkExams.Length; i++)
@@ -298,7 +298,7 @@ namespace TJAPlayer3
                 ));
 
                 if (pfDanPlateTitle == null)
-                    pfDanPlateTitle = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 60);
+                    pfDanPlateTitle = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 60);
 
                 TitleTextureKey ttkTmp = new TitleTextureKey(songNode.ttkタイトル[songNode.ttkタイトル.Length - 1].str文字, pfDanPlateTitle, Color.White, Color.Black, 1000);
                 TJAPlayer3.stage選曲.act曲リスト.ResolveTitleTextureTate(ttkTmp).t2D中心基準描画(TJAPlayer3.app.Device, x, y - 50);

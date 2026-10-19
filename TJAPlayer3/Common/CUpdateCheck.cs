@@ -186,8 +186,8 @@ namespace TJAPlayer3
             const int W = 760, H = 84;
             var bmp = new Bitmap(W, H);
             using (var g = Graphics.FromImage(bmp))
-            using (var f1 = new Font(fontName, 22f, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (var f2 = new Font(fontName, 18f, FontStyle.Regular, GraphicsUnit.Pixel))
+            using (var f1 = new Font(CFontResolver.Family(fontName), 22f, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var f2 = new Font(CFontResolver.Family(fontName), 18f, FontStyle.Regular, GraphicsUnit.Pixel))
             using (var path = 角丸(new Rectangle(1, 1, W - 3, H - 3), 16))
             using (var bg = new SolidBrush(Color.FromArgb(225, 20, 24, 36)))
             using (var edge = new Pen(Color.FromArgb(255, 255, 196, 60), 2f))

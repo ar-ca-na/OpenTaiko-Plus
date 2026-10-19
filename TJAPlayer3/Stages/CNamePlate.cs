@@ -22,22 +22,22 @@ namespace TJAPlayer3
                 if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
                 {
                     if (TJAPlayer3.NamePlateConfig.data.Title[player] == "" || TJAPlayer3.NamePlateConfig.data.Title[player] == null)
-                        this.pfName = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 15);
+                        this.pfName = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 15);
                     else
-                        this.pfName = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 12);
+                        this.pfName = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 12);
 
-                    this.pfTitle = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 11);
-                    this.pfdan = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 12);
+                    this.pfTitle = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 11);
+                    this.pfdan = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 12);
                 }
                 else
                 {
                     if (TJAPlayer3.NamePlateConfig.data.Title[player] == "" || TJAPlayer3.NamePlateConfig.data.Title[player] == null)
-                        this.pfName = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 15);
+                        this.pfName = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 15);
                     else
-                        this.pfName = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 12);
+                        this.pfName = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 12);
 
-                    this.pfTitle = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 11);
-                    this.pfdan = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 12);
+                    this.pfTitle = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 11);
+                    this.pfdan = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 12);
                 }
 
                 tNamePlateRefreshTitles(player);

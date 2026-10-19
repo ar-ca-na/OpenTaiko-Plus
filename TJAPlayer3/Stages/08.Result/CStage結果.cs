@@ -525,15 +525,15 @@ namespace TJAPlayer3
                 {
 					if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
 					{
-						this.pfTowerText = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 28);
-						this.pfTowerText48 = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 48);
-						this.pfTowerText72 = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 72);
+						this.pfTowerText = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 28);
+						this.pfTowerText48 = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 48);
+						this.pfTowerText72 = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 72);
 					}
 					else
 					{
-						this.pfTowerText = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 28);
-						this.pfTowerText48 = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 48);
-						this.pfTowerText72 = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 72);
+						this.pfTowerText = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 28);
+						this.pfTowerText48 = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 48);
+						this.pfTowerText72 = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 72);
 					}
 
 					this.ttkMaxFloors = new TitleTextureKey("/" + TJAPlayer3.stage選曲.r確定された曲.arスコア[5].譜面情報.nTotalFloor.ToString() + CLangManager.LangInstance.GetString(1001), pfTowerText48, Color.Black, Color.Transparent, 700);

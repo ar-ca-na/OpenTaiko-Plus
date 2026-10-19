@@ -144,13 +144,13 @@ namespace TJAPlayer3
         {
             if (!string.IsNullOrEmpty(TJAPlayer3.ConfigIni.FontName))
             {
-                this.pfTitle = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 28);
-                this.pfSubTitle = new CPrivateFastFont(new FontFamily(TJAPlayer3.ConfigIni.FontName), 16);
+                this.pfTitle = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 28);
+                this.pfSubTitle = new CPrivateFastFont(CFontResolver.Family(TJAPlayer3.ConfigIni.FontName), 16);
             }
             else
             {
-                this.pfTitle = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 28);
-                this.pfSubTitle = new CPrivateFastFont(new FontFamily("MS UI Gothic"), 16);
+                this.pfTitle = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 28);
+                this.pfSubTitle = new CPrivateFastFont(CFontResolver.Family("MS UI Gothic"), 16);
             }
 
             this.txTitle = TJAPlayer3.tテクスチャの生成(pfTitle.DrawPrivateFont(TJAPlayer3.stage選曲.r現在選択中の曲.strタイトル, Color.White, Color.Black ));
