@@ -102,7 +102,10 @@ namespace TJAPlayer3
 			{
 				TJAPlayer3.Skin.sound決定音.t再生する();
 
-				if ( this.n現在の選択行 != lciMenuItems.Length - 1 )
+				// 最後の行は「戻る」などの決定用なので値を動かさない。ただし数値の項目なら
+				// （ポーズメニューの全体オフセット）、最後の行でも編集に入れるようにする。
+				if ( this.n現在の選択行 != lciMenuItems.Length - 1
+					|| lciMenuItems[ n現在の選択行 ].cItem.e種別 == CItemBase.E種別.整数 )
 				{
 					if ( lciMenuItems[ n現在の選択行 ].cItem.e種別 == CItemBase.E種別.リスト ||
 						 lciMenuItems[ n現在の選択行 ].cItem.e種別 == CItemBase.E種別.ONorOFFトグル ||
@@ -391,6 +394,12 @@ namespace TJAPlayer3
 									s = "x" + d.ToString("0.0");
                                 }
                                 break;
+                            case "全体オフセット":
+                                {
+                                    int n = (int)lciMenuItems[i].cItem.obj現在値();
+                                    s = (n > 0 ? "+" : "") + n.ToString() + "ms";
+                                }
+                                break;
 
                             default:
                                 s = lciMenuItems[i].cItem.obj現在値().ToString();
@@ -403,7 +412,10 @@ namespace TJAPlayer3
                         {
                             using (var ctStr = TJAPlayer3.tテクスチャの生成(bmpStr, false))
                             {
-                                ctStr.t2D描画(TJAPlayer3.app.Device, 630, 77 + i * 32);
+                                // 項目名が長い（全体オフセット）ときは、名前に重ならないよう右へずらす。
+                                // 枠（右端 x≒818）からはみ出すときは枠の内側に右寄せする。
+                                int x値 = Math.Max(630, Math.Min(480 + lciMenuItems[i].rectName.Width + 12, 808 - bmpStr.Width));
+                                ctStr.t2D描画(TJAPlayer3.app.Device, x値, 77 + i * 32);
                             }
                         }
                     }

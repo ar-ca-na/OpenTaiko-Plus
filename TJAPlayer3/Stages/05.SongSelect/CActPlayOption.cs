@@ -54,6 +54,7 @@ namespace TJAPlayer3
 
             txGameMode[0] = OptionTypeTx("なし", Color.White, Color.Black);
             txGameMode[1] = OptionTypeTx("特訓モード", Color.White, Color.Black);
+            txGameMode[2] = OptionTypeTx("作譜支援", Color.White, Color.Black);
 
             txNone = OptionTypeTx("使用不可" ,Color.White, Color.Black);
 
@@ -74,6 +75,8 @@ namespace TJAPlayer3
 
         public override void On非活性化()
         {
+            TJAPlayer3.tテクスチャの解放(ref txマウス矢印[0]);
+            TJAPlayer3.tテクスチャの解放(ref txマウス矢印[1]);
 
             base.On非活性化();
         }
@@ -96,7 +99,16 @@ namespace TJAPlayer3
             ctOpen.t進行();
             ctClose.t進行();
 
-            if (!ctOpen.b進行中) ctOpen.t開始(0, 50, 6, TJAPlayer3.Timer);
+            if (!ctOpen.b進行中)
+            {
+                ctOpen.t開始(0, 50, 6, TJAPlayer3.Timer);
+                // 開くたびに、いまの設定（作譜支援は Config に残る）をゲームモードの表示に写す。
+                nGameMode = TJAPlayer3.ConfigIni.bChartAuthoring ? 2 : (TJAPlayer3.ConfigIni.bTokkunMode ? 1 : 0);
+                this.bマウスで値を変える = false;
+                // 開く前に溜まっていたクリックで、いきなり項目が進まないように捨てる。
+                if (player == (TJAPlayer3.bマウスは2P側() ? 1 : 0))
+                    this.tマウスを捨てる();
+            }
 
             var act難易度 = TJAPlayer3.stage選曲.act難易度選択画面;
 
@@ -136,6 +148,21 @@ namespace TJAPlayer3
                 txNone.t2D拡大率考慮描画(TJAPlayer3.app.Device, CTexture.RefPnt.Up, 200, 375 + y + i * 40.7f);
             }
 
+            // マウスで値を変えている間は、値の左右に ◀ ▶ を点滅させて出す。
+            if (this.bマウスで値を変える && !bEnd)
+            {
+                if (txマウス矢印[0] == null)
+                {
+                    txマウス矢印[0] = OptionTypeTx("◀", Color.FromArgb(225, 30, 30), Color.White);
+                    txマウス矢印[1] = OptionTypeTx("▶", Color.FromArgb(225, 30, 30), Color.White);
+                }
+                if ((Environment.TickCount / 300) % 2 == 0)
+                {
+                    txマウス矢印[0].t2D拡大率考慮描画(TJAPlayer3.app.Device, CTexture.RefPnt.Up, 200 - 66, 375 + y + NowCount * 40.7f);
+                    txマウス矢印[1].t2D拡大率考慮描画(TJAPlayer3.app.Device, CTexture.RefPnt.Up, 200 + 63, 375 + y + NowCount * 40.7f);
+                }
+            }
+
             if (ctClose.n現在の値 >= 50)
             {
                 Decision();
@@ -152,11 +179,67 @@ namespace TJAPlayer3
 
             if (!ctClose.b進行中)
             {
+                #region [ マウス操作（Shift を押していると 2P 側） ]
+                // ふだん: ホイール＝項目を移る、左クリック＝その項目の値を変え始める（最後の 2 つは閉じる）、右クリック＝閉じる。
+                // 値を変えている間: ホイール＝値を変える、左／右クリック＝決めて項目選びへ戻る。
+                int nマウス段数 = 0;
+                bool bマウス左 = false;
+                bool bマウス右 = false;
+                if (player == (TJAPlayer3.bマウスは2P側() ? 1 : 0))
+                {
+                    nマウス段数 = TJAPlayer3.tマウスホイールの段数を取り出す();
+                    bマウス左 = TJAPlayer3.tマウス左クリックを取り出す();
+                    bマウス右 = TJAPlayer3.tマウス右クリックを取り出す();
+                }
+                bool bマウスで閉じる = false;
+                if (!bEnd && ctOpen.n現在の値 >= ctOpen.n終了値)
+                {
+                    if (this.bマウスで値を変える)
+                    {
+                        // ホイールを上へ回すと値が増える（ポーズメニューの数値と同じ向き）
+                        for (int i = 0; i < nマウス段数; i++) { OptionSelect(false); TJAPlayer3.Skin.sound変更音.t再生する(); }
+                        for (int i = 0; i > nマウス段数; i--) { OptionSelect(true); TJAPlayer3.Skin.sound変更音.t再生する(); }
+                        if (bマウス左 || bマウス右)
+                        {
+                            TJAPlayer3.Skin.sound決定音.t再生する();
+                            this.bマウスで値を変える = false;
+                        }
+                    }
+                    else
+                    {
+                        // ホイールを上へ回すと上の項目へ
+                        int n移動先 = Math.Max(0, Math.Min(7, NowCount - nマウス段数));
+                        if (n移動先 != NowCount)
+                        {
+                            NowCount = n移動先;
+                            TJAPlayer3.Skin.sound変更音.t再生する();
+                        }
+                        if (bマウス左)
+                        {
+                            if (NowCount <= 5)
+                            {
+                                TJAPlayer3.Skin.sound決定音.t再生する();
+                                this.bマウスで値を変える = true;
+                            }
+                            else bマウスで閉じる = true;    // ボイス・音色は変えられないので、押したら閉じる
+                        }
+                        if (bマウス右) bマウスで閉じる = true;
+                    }
+                }
+                if (bマウスで閉じる)
+                {
+                    TJAPlayer3.Skin.sound決定音.t再生する();
+                    bEnd = true;
+                    ctClose.t開始(0, 50, 6, TJAPlayer3.Timer);
+                }
+                #endregion
+
                 if (TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LBlue)) { OptionSelect(true); TJAPlayer3.Skin.sound変更音.t再生する(); };
                 if (TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RBlue)) { OptionSelect(false); TJAPlayer3.Skin.sound変更音.t再生する(); };
 
                 if ((TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LRed) || TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RRed)) && ctOpen.n現在の値 >= ctOpen.n終了値)
                 {
+                    this.bマウスで値を変える = false;
                     TJAPlayer3.Skin.sound決定音.t再生する();
                     if (NowCount < 7)
                     {
@@ -194,7 +277,10 @@ namespace TJAPlayer3
         public CTexture[] txRandom = new CTexture[3];
         public int nRandom = 0;
 
-        public CTexture[] txGameMode = new CTexture[2];
+        public CTexture[] txGameMode = new CTexture[3];
+        private CTexture[] txマウス矢印 = new CTexture[2];
+        /// <summary>マウスの左クリックで「値を変える」状態に入っているか（ホイールが値を変える）。</summary>
+        private bool bマウスで値を変える;
         public int nGameMode;
 
         public CTexture[] txAutoMode = new CTexture[2];
@@ -248,8 +334,9 @@ namespace TJAPlayer3
                     }
                     break;
                 case 4:
-                    if (nGameMode == 0) nGameMode = 1;
-                    else nGameMode = 0;
+                    // なし → 特訓モード → 作譜支援 の 3 つを回す
+                    if (left) nGameMode = (nGameMode + 2) % 3;
+                    else nGameMode = (nGameMode + 1) % 3;
                     break;
                 case 5:
                     if (nAutoMode == 0) nAutoMode = 1;
@@ -258,6 +345,27 @@ namespace TJAPlayer3
 
             }
         }
+        private void tマウスを捨てる()
+        {
+            TJAPlayer3.tマウスホイールの段数を取り出す();
+            TJAPlayer3.tマウス左クリックを取り出す();
+            TJAPlayer3.tマウス右クリックを取り出す();
+        }
+
+        /// <summary>
+        /// 決めずに閉じる（難易度選択から Shift+F1 で設定画面へ行くとき）。次に開いたとき最初の項目から始まるようにする。
+        /// </summary>
+        public void t決めずに閉じる()
+        {
+            NowCount = 0;
+            this.bマウスで値を変える = false;
+            ctOpen?.t停止();
+            if (ctOpen != null) ctOpen.n現在の値 = 0;
+            ctClose?.t停止();
+            if (ctClose != null) ctClose.n現在の値 = 0;
+            bEnd = false;
+        }
+
         public void Decision()
         {
             #region [ Speed ]
@@ -325,14 +433,10 @@ namespace TJAPlayer3
             }
             #endregion
             #region [ GameMode ]
-            if(nGameMode == 0)
-            {
-                TJAPlayer3.ConfigIni.bTokkunMode = false;
-            }
-            else
-            {
-                TJAPlayer3.ConfigIni.bTokkunMode = true;
-            }
+            // 作譜支援モードは演奏画面に入るときに特訓モードを借りるので、ここでは特訓モードを立てない。
+            // （作譜支援は Config に保存され、次に起動したときも ON のまま）
+            TJAPlayer3.ConfigIni.bTokkunMode = (nGameMode == 1);
+            TJAPlayer3.ConfigIni.bChartAuthoring = (nGameMode == 2);
             #endregion
             #region [ AutoMode ]
             if(nAutoMode == 1)

@@ -502,6 +502,9 @@ namespace TJAPlayer3
 				this.t進行描画_チップアニメ();
 
                 this.actLaneTaiko.On進行描画();
+                // 特訓（作譜支援）: 小節番号の後ろの黒と、レーンの下の音声波形
+                if (TJAPlayer3.ConfigIni.bTokkunMode)
+                    this.actTokkun.On進行描画_レーン下();
                 //this.t進行描画_レーン();
 				//this.t進行描画_レーンフラッシュD();
 
@@ -2130,7 +2133,8 @@ namespace TJAPlayer3
             if (configIni.b演奏情報を表示する || TJAPlayer3.ConfigIni.bTokkunMode)
             {
                 var nowMeasure = pChip.n整数値_内部番号;
-                if ( x >= 310 )
+                // 番号はレーン上の黒い帯（特訓ではレーンの左端まで伸ばしてある）に収まる所だけ出す
+                if ( x + 8 >= TJAPlayer3.Skin.nScrollFieldBGX[ nPlayer ] + 2 )
                 {
 				    TJAPlayer3.act文字コンソール.tPrint(x + 8, y - 26, C文字コンソール.Eフォント種別.白, nowMeasure.ToString());
                 }
@@ -2228,19 +2232,8 @@ namespace TJAPlayer3
 
             if (TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDX.DirectInput.Key.F1))
             {
-                if (!this.actPauseMenu.bIsActivePopupMenu && this.bPAUSE == false)
-                {
-                    TJAPlayer3.Skin.sound変更音.t再生する();
-
-                    CSound管理.rc演奏用タイマ.t一時停止();
-                    TJAPlayer3.Timer.t一時停止();
-                    TJAPlayer3.DTX.t全チップの再生一時停止();
-                    this.actAVI.tPauseControl();
-
-                    this.bPAUSE = true;
-                    this.actPauseMenu.tActivatePopupMenu(0);
-                }
-
+                // 特訓モード（作譜支援）で止めている最中でも開ける。
+                this.tポーズメニューを開く();
             }
 
         }
@@ -2254,21 +2247,42 @@ namespace TJAPlayer3
 
             if (showJudgeInfo)
             {
+                bool b特訓 = TJAPlayer3.ConfigIni.bTokkunMode;
+                // 特訓（作譜支援）では「連打」の段を少し上げて、下に H キーの案内を出す場所を空ける。
+                int n連打を上げる = b特訓 ? 18 : 0;
+
                 //ボードの横幅は333px
                 //数字フォントの小さいほうはリザルトのものと同じ。
                 if( TJAPlayer3.Tx.Judge_Meter != null )
-                    TJAPlayer3.Tx.Judge_Meter.t2D描画( TJAPlayer3.app.Device, 0, 360 );
+                {
+                    if (n連打を上げる == 0)
+                        TJAPlayer3.Tx.Judge_Meter.t2D描画( TJAPlayer3.app.Device, 0, 360 );
+                    else
+                    {
+                        // 「不可」の段の下（画像の 268px 目）で切り、下側を上へずらして描く。空いた下端は画像の黒い所で埋める。
+                        int w = TJAPlayer3.Tx.Judge_Meter.szテクスチャサイズ.Width, h = TJAPlayer3.Tx.Judge_Meter.szテクスチャサイズ.Height;
+                        int n切る = Math.Min(268, h);
+                        TJAPlayer3.Tx.Judge_Meter.t2D描画( TJAPlayer3.app.Device, 0, 360, new Rectangle(0, 0, w, n切る) );
+                        TJAPlayer3.Tx.Judge_Meter.t2D描画( TJAPlayer3.app.Device, 0, 360 + n切る - n連打を上げる, new Rectangle(0, n切る, w, h - n切る) );
+                        TJAPlayer3.Tx.Judge_Meter.t2D描画( TJAPlayer3.app.Device, 0, 360 + h - n連打を上げる, new Rectangle(0, h - n連打を上げる, w, n連打を上げる) );
+                    }
+                }
 
-                this.t小文字表示( 102, 494, string.Format( "{0,4:###0}", this.nヒット数_Auto含まない.Drums.Perfect.ToString() ), false );
-                this.t小文字表示( 102, 532, string.Format( "{0,4:###0}", this.nヒット数_Auto含まない.Drums.Great.ToString() ), false );
-                this.t小文字表示( 102, 570, string.Format( "{0,4:###0}", this.nヒット数_Auto含まない.Drums.Miss.ToString() ), false );
-                this.t小文字表示(102, 634, string.Format("{0,4:###0}", GetRoll(0)), false);
+                // 特訓では F6（オート）で叩いた音符も数える（譜面を作りながらオートで流したときにも数が見えるように）。
+                int n良 = this.nヒット数_Auto含まない.Drums.Perfect + (b特訓 ? this.nヒット数_Auto含む.Drums.Perfect : 0);
+                int n可 = this.nヒット数_Auto含まない.Drums.Great + (b特訓 ? this.nヒット数_Auto含む.Drums.Great : 0);
+                int n不可 = this.nヒット数_Auto含まない.Drums.Miss + (b特訓 ? this.nヒット数_Auto含む.Drums.Miss : 0);
 
-                int nNowTotal = this.nヒット数_Auto含まない.Drums.Perfect + this.nヒット数_Auto含まない.Drums.Great + this.nヒット数_Auto含まない.Drums.Miss;
-                double dbたたけた率 = Math.Round((100.0 * ( TJAPlayer3.stage演奏ドラム画面.nヒット数_Auto含まない.Drums.Perfect + TJAPlayer3.stage演奏ドラム画面.nヒット数_Auto含まない.Drums.Great)) / (double)nNowTotal);
-                double dbPERFECT率 = Math.Round((100.0 * TJAPlayer3.stage演奏ドラム画面.nヒット数_Auto含まない.Drums.Perfect) / (double)nNowTotal);
-                double dbGREAT率 = Math.Round((100.0 * TJAPlayer3.stage演奏ドラム画面.nヒット数_Auto含まない.Drums.Great / (double)nNowTotal));
-                double dbMISS率 = Math.Round((100.0 * TJAPlayer3.stage演奏ドラム画面.nヒット数_Auto含まない.Drums.Miss / (double)nNowTotal));
+                this.t小文字表示( 102, 494, string.Format( "{0,4:###0}", n良.ToString() ), false );
+                this.t小文字表示( 102, 532, string.Format( "{0,4:###0}", n可.ToString() ), false );
+                this.t小文字表示( 102, 570, string.Format( "{0,4:###0}", n不可.ToString() ), false );
+                this.t小文字表示(102, 634 - n連打を上げる, string.Format("{0,4:###0}", GetRoll(0)), false);
+
+                int nNowTotal = n良 + n可 + n不可;
+                double dbたたけた率 = Math.Round((100.0 * ( n良 + n可 )) / (double)nNowTotal);
+                double dbPERFECT率 = Math.Round((100.0 * n良) / (double)nNowTotal);
+                double dbGREAT率 = Math.Round((100.0 * n可 / (double)nNowTotal));
+                double dbMISS率 = Math.Round((100.0 * n不可 / (double)nNowTotal));
 
                 if (double.IsNaN(dbたたけた率))
                     dbたたけた率 = 0;

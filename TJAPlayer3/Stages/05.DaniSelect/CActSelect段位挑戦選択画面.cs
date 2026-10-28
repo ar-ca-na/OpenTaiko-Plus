@@ -50,6 +50,36 @@ namespace TJAPlayer3
 
                 #region [Key bindings]
 
+                #region [ マウス操作 ]
+                // ホイール上＝左へ、下＝右へ（段位の一覧と同じ向き）。左クリック＝決定、右クリック＝やめて一覧へ戻る。
+                // 出てくる途中のクリックは捨てる（溜まったまま、出た瞬間に決定されないように）。
+                int nマウス段数 = TJAPlayer3.tマウスホイールの段数を取り出す();
+                bool bマウス決定 = TJAPlayer3.tマウス左クリックを取り出す();
+                bool bマウス戻る = TJAPlayer3.tマウス右クリックを取り出す();
+                bool b操作できる = ctBarIn.b終了値に達した && !TJAPlayer3.stage段位選択.b選択した && TJAPlayer3.stage段位選択.bDifficultyIn;
+                if (!b操作できる)
+                {
+                    nマウス段数 = 0;
+                    bマウス決定 = false;
+                    bマウス戻る = false;
+                }
+                for (int i = 0; i < nマウス段数; i++)
+                {
+                    if (n現在の選択行 + 1 <= 2) { TJAPlayer3.Skin.sound変更音.t再生する(); n現在の選択行++; }
+                }
+                for (int i = 0; i > nマウス段数; i--)
+                {
+                    if (n現在の選択行 - 1 >= 0) { TJAPlayer3.Skin.sound変更音.t再生する(); n現在の選択行--; }
+                }
+                if (bマウス戻る)
+                {
+                    this.ctBarOut.t開始(0, 255, 0.5f, TJAPlayer3.Timer);
+                    TJAPlayer3.Skin.sound取消音.t再生する();
+                    TJAPlayer3.stage段位選択.bDifficultyIn = false;
+                    return base.On進行描画();
+                }
+                #endregion
+
                 if (ctBarIn.b終了値に達した && !TJAPlayer3.stage段位選択.b選択した)
                 {
                     if (TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.RightArrow) ||
@@ -72,7 +102,8 @@ namespace TJAPlayer3
                         }
                     }
 
-                    if (TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Return) ||
+                    if (bマウス決定 ||
+                        TJAPlayer3.Input管理.Keyboard.bキーが押された((int)Key.Return) ||
                         TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.LRed) ||
                         TJAPlayer3.Pad.b押された(E楽器パート.DRUMS, Eパッド.RRed))
                     {

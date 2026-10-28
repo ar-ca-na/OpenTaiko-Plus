@@ -546,6 +546,29 @@ namespace TJAPlayer3
                         return 0;
                     }
                     #endregion
+                    #region [ 難易度選択中の Shift+F1: 詳細CONFIG呼び出し ]
+                    // 曲リストの Shift+F1 は難易度選択中には通らないので、ここでも受ける。
+                    // まだ難易度を決めていないときだけ。難易度選択と演奏オプションは閉じてから行く
+                    // （戻ってきたときは曲リストの状態になる）。
+                    if (this.act難易度選択画面.bIsDifficltSelect
+                        && !this.act難易度選択画面.bSelect[0] && !this.act難易度選択画面.bSelect[1]
+                        && (TJAPlayer3.Input管理.Keyboard.bキーが押されている((int)SlimDXKeys.Key.RightShift) || TJAPlayer3.Input管理.Keyboard.bキーが押されている((int)SlimDXKeys.Key.LeftShift))
+                        && TJAPlayer3.Input管理.Keyboard.bキーが押された((int)SlimDXKeys.Key.F1))
+                    {
+                        this.act難易度選択画面.bOption[0] = false;
+                        this.act難易度選択画面.bOption[1] = false;
+                        this.actPlayOption.t決めずに閉じる();
+                        this.act曲リスト.ctBarOpen.t開始(100, 260, 2, TJAPlayer3.Timer);
+                        this.act難易度選択画面.bIsDifficltSelect = false;
+
+                        this.actPresound.tサウンド停止();
+                        this.eフェードアウト完了時の戻り値 = E戻り値.コンフィグ呼び出し;
+                        this.actFIFO.tフェードアウト開始();
+                        base.eフェーズID = CStage.Eフェーズ.共通_フェードアウト;
+                        TJAPlayer3.Skin.sound取消音.t再生する();
+                        return 0;
+                    }
+                    #endregion
                     if (!this.actSortSongs.bIsActivePopupMenu && !this.actQuickConfig.bIsActivePopupMenu && !this.act難易度選択画面.bIsDifficltSelect)
                     {
                         #region [ ESC ]

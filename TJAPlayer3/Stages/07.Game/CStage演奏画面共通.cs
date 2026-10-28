@@ -540,6 +540,8 @@ namespace TJAPlayer3
 		public CAct演奏ステージ失敗 actStageFailed;
 		protected CAct演奏ステータスパネル共通 actStatusPanels;
 		protected CAct演奏スクロール速度 act譜面スクロール速度;
+		/// <summary>いまの譜面スクロール速度（音符の横位置の式の値。特訓の波形を音符と同じ縮尺で描くため）。</summary>
+		public double dbいまの譜面スクロール速度 => this.act譜面スクロール速度 != null ? this.act譜面スクロール速度.db現在の譜面スクロール速度.Drums : 0.0;
 		public    C演奏判定ライン座標共通 演奏判定ライン座標;
         protected CAct演奏Drums連打 actRoll;
         protected CAct演奏Drums風船 actBalloon;
@@ -554,6 +556,50 @@ namespace TJAPlayer3
         public Dan_Cert actDan;
         public CAct演奏Drums特訓モード actTokkun;
         public bool bPAUSE;
+
+        /// <summary>ポーズメニューを出しているか（特訓モードのキー・ヘルプが見る）。</summary>
+        public bool bポーズメニュー表示中
+        {
+            get { return this.actPauseMenu != null && this.actPauseMenu.bIsActivePopupMenu; }
+        }
+
+        /// <summary>特訓モード（作譜支援モード）の Space で止めているか。このとき bPAUSE も立っている。</summary>
+        public bool b特訓で止めている
+        {
+            get
+            {
+                var 画面 = TJAPlayer3.stage演奏ドラム画面;
+                return TJAPlayer3.ConfigIni.bTokkunMode && 画面 != null && 画面.actTokkun != null && 画面.actTokkun.b停止中;
+            }
+        }
+
+        /// <summary>
+        /// ポーズメニューを開く（F1・Esc・右クリック）。
+        /// 特訓モードで止めている最中でも開ける（作譜支援ではたいてい止めて使うため）。
+        /// そのときは音も動画も止まっているので、止め直さない（続けるで鳴り出さないように）。
+        /// </summary>
+        public void tポーズメニューを開く()
+        {
+            if (this.actPauseMenu.bIsActivePopupMenu)
+                return;
+            bool b止めている = this.b特訓で止めている;
+            if (this.bPAUSE && !b止めている)
+                return;
+
+            TJAPlayer3.Skin.sound変更音.t再生する();
+
+            CSound管理.rc演奏用タイマ.t一時停止();
+            TJAPlayer3.Timer.t一時停止();
+            if (!b止めている)
+            {
+                TJAPlayer3.DTX.t全チップの再生一時停止();
+                this.actAVI.tPauseControl();
+            }
+
+            this.bPAUSE = true;
+            this.actPauseMenu.tActivatePopupMenu(0);
+            this.actPauseMenu.b特訓で止めていた = b止めている;
+        }
         public bool[] bIsAlreadyCleared;
         public bool[] bIsAlreadyMaxed;
         protected bool b演奏にMIDI入力を使った;
@@ -1276,9 +1322,23 @@ namespace TJAPlayer3
 
                             if (bAutoPlay)
                             {
+                                // 連打ノーツと同じ速さで叩く。指定の回数を叩き終えたか、制限時間を過ぎたら止める。
+                                // （本家は制限時間いっぱいに割り振り、終わりぎりぎりで割っていた）
+                                // 連打の速さが 0 のときだけ、本家と同じ割り振りにする。
+                                int rollSpeed = TJAPlayer3.ConfigIni.nRollsPerSec;
+                                if (TJAPlayer3.ConfigIni.nAILevel > 0 && nPlayer == 1)
+                                    rollSpeed = TJAPlayer3.ConfigIni.apAIPerformances[TJAPlayer3.ConfigIni.nAILevel - 1].nRollSpeed;
+
                                 if (pChip.nBalloon != 0 && this.bPAUSE == false)
                                 {
-                                    if ((CSound管理.rc演奏用タイマ.n現在時刻 * (((double)TJAPlayer3.ConfigIni.n演奏速度) / 20.0)) > (pChip.n発声時刻ms + ((pChip.nノーツ終了時刻ms - pChip.n発声時刻ms) / pChip.nBalloon) * pChip.nRollCount))
+                                    double db今 = CSound管理.rc演奏用タイマ.n現在時刻 * (((double)TJAPlayer3.ConfigIni.n演奏速度) / 20.0);
+                                    double db間隔 = rollSpeed > 0
+                                        ? 1000.0 / rollSpeed
+                                        : (double)((pChip.nノーツ終了時刻ms - pChip.n発声時刻ms) / pChip.nBalloon);
+
+                                    if (pChip.nRollCount < pChip.nBalloon
+                                        && db今 < pChip.nノーツ終了時刻ms
+                                        && db今 > pChip.n発声時刻ms + db間隔 * pChip.nRollCount)
                                     {
                                         if (this.nHand[nPlayer] == 0)
                                             this.nHand[nPlayer]++;
@@ -2338,18 +2398,7 @@ namespace TJAPlayer3
 				// 演奏中の右クリックでもポーズに入れる。左クリックは打面と紛らわしいので割り当てない。
 				else if ( ( base.eフェーズID == CStage.Eフェーズ.共通_通常状態 ) && ( TJAPlayer3.tマウス右クリックを取り出す() | ( keyboard.bキーが押された( (int)SlimDXKeys.Key.Escape ) || TJAPlayer3.Pad.b押されたGB( Eパッド.FT ) ) ) && !this.actPauseMenu.bIsActivePopupMenu )
 				{	// escape (exit)
-                    if (!this.actPauseMenu.bIsActivePopupMenu && this.bPAUSE == false)
-                    {
-                        TJAPlayer3.Skin.sound変更音.t再生する();
-
-                        CSound管理.rc演奏用タイマ.t一時停止();
-                        TJAPlayer3.Timer.t一時停止();
-                        TJAPlayer3.DTX.t全チップの再生一時停止();
-                        this.actAVI.tPauseControl();
-
-                        this.bPAUSE = true;
-                        this.actPauseMenu.tActivatePopupMenu(0);
-                    }
+                    this.tポーズメニューを開く();
                     // this.t演奏中止();
 				}
                 else if ( keyboard.bキーが押された( (int)SlimDXKeys.Key.D1 ) )
@@ -3893,38 +3942,15 @@ namespace TJAPlayer3
             bool 止まっていた = TJAPlayer3.stage演奏ドラム画面 != null
                 && TJAPlayer3.stage演奏ドラム画面.actTokkun != null
                 && TJAPlayer3.stage演奏ドラム画面.actTokkun.b停止中;
+            // 小節の途中で止めていたなら、その時刻へ戻す。
+            bool 途中で止めていた = 止まっていた && !TJAPlayer3.stage演奏ドラム画面.actTokkun.b小節線で止まっている;
+            long 止めた時刻ms = CSound管理.rc演奏用タイマ.n現在時刻ms;
 
             try
             {
                 bool 二人 = TJAPlayer3.ConfigIni.nPlayerCount == 2;
 
-                旧.t全チップの再生停止とミキサーからの削除();
-                if ( 旧.b活性化してる ) 旧.On非活性化();
-                if ( 二人 && TJAPlayer3.DTX_2P != null && TJAPlayer3.DTX_2P != 旧 )
-                {
-                    TJAPlayer3.DTX_2P.t全チップの再生停止とミキサーからの削除();
-                    if ( TJAPlayer3.DTX_2P.b活性化してる ) TJAPlayer3.DTX_2P.On非活性化();
-                }
-
-                var ini = new CScoreIni( str + ".score.ini" );
-                TJAPlayer3.DTX = new CDTX( str, false, 1.0, ini.stファイル.BGMAdjust, 0, 0, true,
-                    TJAPlayer3.stage選曲.n確定された曲の難易度[ 0 ] );
-                if ( 二人 )
-                    TJAPlayer3.DTX_2P = new CDTX( str, false, 1.0, ini.stファイル.BGMAdjust, 0, 1, true,
-                        TJAPlayer3.stage選曲.n確定された曲の難易度[ 1 ] );
-
-                COfflineExport.実際に読み込んだ難易度に合わせる();
-
-                // 音を読む。曲読み込み画面と同じで、使われている WAV だけ。
-                foreach ( var kv in TJAPlayer3.DTX.listWAV )
-                    if ( kv.Value.listこのWAVを使用するチャンネル番号の集合.Count > 0 )
-                        TJAPlayer3.DTX.tWAVの読み込み( kv.Value );
-
-                if ( TJAPlayer3.ConfigIni.bDynamicBassMixerManagement )
-                    TJAPlayer3.DTX.PlanToAddMixerChannel();
-                TJAPlayer3.DTX.t太鼓チップのランダム化( TJAPlayer3.ConfigIni.eRandom.Taiko );
-                if ( TJAPlayer3.ConfigIni.bAVI有効 )
-                    TJAPlayer3.DTX.tAVIの読み込み();
+                this.t譜面ファイルを読み直す( str );
 
                 // 画面のほうを作り直して、同じ小節へ戻す。
                 this.actAVI.tReset();
@@ -3944,6 +3970,7 @@ namespace TJAPlayer3
                     特訓.n現在の小節線 = 小節;
                     // 止めていたなら止めたまま戻す。
                     if ( 止まっていた ) 特訓.t演奏を停止する();
+                    if ( 途中で止めていた ) 特訓.t止めた時刻へ戻す( 止めた時刻ms );
                     else this.bPAUSE = false;
                 }
                 Trace.TraceInformation( "譜面を読み直しました。({0} 小節目のまま)", 小節 );
@@ -3956,8 +3983,72 @@ namespace TJAPlayer3
             }
         }
 
-        public void t演奏やりなおし()
+        /// <summary>
+        /// tja を読み直して DTX（2 人なら DTX_2P も）を作り直し、音と動画も読み直す。
+        /// 画面側の初期化はしない（呼んだ側で行う）。失敗したら例外のまま返す。
+        /// </summary>
+        private void t譜面ファイルを読み直す( string str )
         {
+            var 旧 = TJAPlayer3.DTX;
+            bool 二人 = TJAPlayer3.ConfigIni.nPlayerCount == 2;
+
+            旧.t全チップの再生停止とミキサーからの削除();
+            if ( 旧.b活性化してる ) 旧.On非活性化();
+            if ( 二人 && TJAPlayer3.DTX_2P != null && TJAPlayer3.DTX_2P != 旧 )
+            {
+                TJAPlayer3.DTX_2P.t全チップの再生停止とミキサーからの削除();
+                if ( TJAPlayer3.DTX_2P.b活性化してる ) TJAPlayer3.DTX_2P.On非活性化();
+            }
+
+            var ini = new CScoreIni( str + ".score.ini" );
+            TJAPlayer3.DTX = new CDTX( str, false, 1.0, ini.stファイル.BGMAdjust, 0, 0, true,
+                TJAPlayer3.stage選曲.n確定された曲の難易度[ 0 ] );
+            if ( 二人 )
+                TJAPlayer3.DTX_2P = new CDTX( str, false, 1.0, ini.stファイル.BGMAdjust, 0, 1, true,
+                    TJAPlayer3.stage選曲.n確定された曲の難易度[ 1 ] );
+
+            COfflineExport.実際に読み込んだ難易度に合わせる();
+
+            // 音を読む。曲読み込み画面と同じで、使われている WAV だけ。
+            foreach ( var kv in TJAPlayer3.DTX.listWAV )
+                if ( kv.Value.listこのWAVを使用するチャンネル番号の集合.Count > 0 )
+                    TJAPlayer3.DTX.tWAVの読み込み( kv.Value );
+
+            if ( TJAPlayer3.ConfigIni.bDynamicBassMixerManagement )
+                TJAPlayer3.DTX.PlanToAddMixerChannel();
+            TJAPlayer3.DTX.t太鼓チップのランダム化( TJAPlayer3.ConfigIni.eRandom.Taiko );
+            if ( TJAPlayer3.ConfigIni.bAVI有効 )
+                TJAPlayer3.DTX.tAVIの読み込み();
+        }
+
+        /// <param name="b譜面を読み直す">
+        /// ポーズメニューで全体オフセットを変えたとき true。オフセットは譜面を読むときに
+        /// 各チップの時刻へ足されるので、頭から始め直す前に tja を読み直す。
+        /// </param>
+        public void t演奏やりなおし( bool b譜面を読み直す = false )
+        {
+            if ( b譜面を読み直す )
+            {
+                string str = TJAPlayer3.DTX?.strファイル名の絶対パス;
+                try
+                {
+                    if ( string.IsNullOrEmpty( str ) || !System.IO.File.Exists( str ) )
+                        throw new System.IO.FileNotFoundException( "譜面のファイルが見つかりません。", str ?? "(なし)" );
+                    this.t譜面ファイルを読み直す( str );
+                    // 効いたかを後から確かめられるよう、最初の音符と曲の時刻もログに残す。
+                    var 最初の音符 = TJAPlayer3.DTX.listChip.Find( c => c.nチャンネル番号 >= 0x11 && c.nチャンネル番号 <= 0x18 );
+                    var 曲 = TJAPlayer3.DTX.listChip.Find( c => c.nチャンネル番号 == 0x01 );
+                    Trace.TraceInformation( "全体オフセットを {0} ms にして譜面を読み直しました。（最初の音符 {1} ms / 曲 {2} ms）",
+                        TJAPlayer3.ConfigIni.nGlobalOffsetMs,
+                        最初の音符 != null ? 最初の音符.n発声時刻ms.ToString() : "-",
+                        曲 != null ? 曲.n発声時刻ms.ToString() : "-" );
+                }
+                catch ( Exception e )
+                {
+                    // 読み直せなくても、いままでの譜面のまま頭からやり直す（新しい値は次の選曲から効く）。
+                    Trace.TraceError( "全体オフセットを変えたあとの譜面の読み直しに失敗しました。{0}", e.Message );
+                }
+            }
 			TJAPlayer3.DTX.t全チップの再生停止とミキサーからの削除();
             this.t数値の初期化( true, true );
             this.actAVI.tReset();
@@ -3972,6 +4063,9 @@ namespace TJAPlayer3
             {
                 this.chip現在処理中の連打チップ[ i ] = null;
             }
+            // 特訓モード（作譜支援）で止めていたなら、その状態も解いて頭から流す。
+            if ( TJAPlayer3.ConfigIni.bTokkunMode && TJAPlayer3.stage演奏ドラム画面.actTokkun != null )
+                TJAPlayer3.stage演奏ドラム画面.actTokkun.tやり直しに合わせる();
             this.bPAUSE = false;
         }
 
@@ -4034,7 +4128,8 @@ namespace TJAPlayer3
             this.nHand = new int[]{ 0, 0, 0, 0 };
         }
 
-		public void t演奏位置の変更( int nStartBar, int nPlayer )
+		/// <param name="n開始時刻ms">0 以上なら、小節の頭ではなくこの時刻（演奏用タイマの ms）から流す（特訓で小節の途中から再開するとき）。</param>
+		public void t演奏位置の変更( int nStartBar, int nPlayer, long n開始時刻ms = -1 )
 		{
 			// まず全サウンドオフにする
 			TJAPlayer3.DTX.t全チップの再生停止();
@@ -4114,6 +4209,7 @@ namespace TJAPlayer3
 #endregion
 #region [ 演奏開始の発声時刻msを取得し、タイマに設定 ]
             int nStartTime = (int)(dTX.listChip[this.n現在のトップChip].n発声時刻ms / (((double)TJAPlayer3.ConfigIni.n演奏速度) / 20.0));
+            if ( n開始時刻ms >= 0 ) nStartTime = (int)n開始時刻ms;
 
             CSound管理.rc演奏用タイマ.tリセット();	// これでPAUSE解除されるので、次のPAUSEチェックは不要
 			//if ( !this.bPAUSE )

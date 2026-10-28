@@ -406,10 +406,16 @@ namespace SampleFramework
                     }
 				}
 				#region #28200 2012.5.1 yyagi: Disable system menu
-				if ( ( m.WParam.ToInt32() & 0xFFFF ) == 0xF100 && !EnableSystemMenu )	// SC_KEYMENU
+				if ( ( m.WParam.ToInt32() & 0xFFF0 ) == 0xF100 )	// SC_KEYMENU
 				{
-					m.Result = IntPtr.Zero;
-					return;
+					// F10 や Alt を単独で押したとき（lParam=0）は、メニューバーの操作待ちに入って
+					// ゲームのループが止まる（画面が固まったように見える）。設定に関係なく捨てる。
+					// Alt+Space のシステムメニュー（lParam=' '）は EnableSystemMenu のときだけ通す。
+					if ( m.LParam == IntPtr.Zero || !EnableSystemMenu )
+					{
+						m.Result = IntPtr.Zero;
+						return;
+					}
 				}
 				#endregion
 				#region #23510 2010.11.13 yyagi: reset to 640x480

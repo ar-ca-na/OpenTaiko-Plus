@@ -1190,6 +1190,20 @@ namespace FDK
         private static float 虹色_01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);
         #endregion
 
+		/// <summary>
+		/// 頂点（画面座標・色・UV）をそのまま三角形の並び（TriangleList）で描く。
+		/// 細い棒をたくさん描くとき（音声波形など）に、1 本ずつ t2D描画 するより 1 回でまとめて描くため。
+		/// </summary>
+		public void t2D頂点描画(Device device, TransformedColoredTexturedVertex[] v頂点, int n三角形の数)
+		{
+			if (this.texture == null || v頂点 == null || n三角形の数 <= 0)
+				return;
+			this.tレンダリングステートの設定(device);
+			device.SetTexture(0, this.texture);
+			device.VertexFormat = TransformedColoredTexturedVertex.Format;
+			device.DrawUserPrimitives(PrimitiveType.TriangleList, 0, n三角形の数, in v頂点);
+		}
+
 		private void tレンダリングステートの設定(Device device)
         {
             // 虹色のときは頂点色を 2 倍で掛ける（0.5 が元の明るさ）。明るく光らせるため。

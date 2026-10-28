@@ -22,30 +22,42 @@ namespace TJAPlayer3
         private void CAct演奏PauseMenuMain()
 		{
             this.bEsc有効 = false;
-			lci = new List<List<List<CItemBase>>>();									// この画面に来る度に、メニューを作り直す。
-			for ( int nConfSet = 0; nConfSet < (TJAPlayer3.stage選曲.n確定された曲の難易度[0] != (int)Difficulty.Dan ? 3 : 2); nConfSet++ )
-			{
-				lci.Add( new List<List<CItemBase>>() );									// ConfSet用の3つ分の枠。
-				for ( int nInst = 0; nInst < 3; nInst++ )
-				{
-					lci[ nConfSet ].Add( null );										// Drum/Guitar/Bassで3つ分、枠を作っておく
-					lci[ nConfSet ][ nInst ] = MakeListCItemBase( nConfSet, nInst );
-				}
-			}
-			base.Initialize( lci[ nCurrentConfigSet ][ 0 ], true, QuickCfgTitle, 0 );	// ConfSet=0, nInst=Drums
+			// この画面に来る度に、メニューを作り直す。オフセットの項目も Config の値から始まるので、
+			// 「続ける」で閉じたときの変更はここで捨てられる。
+			this.l項目 = MakeListCItemBase();
+			base.Initialize( this.l項目, true, QuickCfgTitle, 0 );
 		}
 
-		private List<CItemBase> MakeListCItemBase( int nConfigSet, int nInst )
+		private List<CItemBase> MakeListCItemBase()
 		{
 			List<CItemBase> l = new List<CItemBase>();
 
 			#region [ 共通 SET切り替え/More/Return ]
-			l.Add( new CSwitchItemList( "続ける", CItemBase.Eパネル種別.通常, 0, "", "", new string[] { "" } ) );
-			if(TJAPlayer3.stage選曲.n確定された曲の難易度[0] != (int)Difficulty.Dan) l.Add( new CSwitchItemList( "やり直し", CItemBase.Eパネル種別.通常, 0, "", "", new string[] { "" } ) );
-			l.Add( new CSwitchItemList( "演奏中止", CItemBase.Eパネル種別.通常, 0, "", "", new string[] { "", "" } ) );
+			l.Add( this.item続ける = new CSwitchItemList( "続ける(保存しない)", CItemBase.Eパネル種別.通常, 0, "", "", new string[] { "" } ) );
+			this.itemやり直し = null;
+			if(TJAPlayer3.stage選曲.n確定された曲の難易度[0] != (int)Difficulty.Dan) l.Add( this.itemやり直し = new CSwitchItemList( "やり直し(保存する)", CItemBase.Eパネル種別.通常, 0, "", "", new string[] { "" } ) );
+			l.Add( this.item演奏中止 = new CSwitchItemList( "演奏中止", CItemBase.Eパネル種別.通常, 0, "", "", new string[] { "", "" } ) );
 			#endregion
 
+			// 全体オフセット（設定画面の GlobalOffset と同じ値・同じ範囲）。
+			// ここで変えた値は「やり直し」か「演奏中止」を選んだときだけ Config に入れる。
+			l.Add( this.itemオフセット = new CItemInteger( "全体オフセット", -99, 99, TJAPlayer3.ConfigIni.nGlobalOffsetMs ) );
+
 			return l;
+		}
+
+		/// <summary>
+		/// メニューで変えた全体オフセットを Config に入れる。値が変わったら true。
+		/// オフセットは譜面を読むときに足されるので、変わったら譜面を読み直す必要がある。
+		/// </summary>
+		private bool tオフセットを確定する()
+		{
+			int n新 = this.itemオフセット.n現在の値;
+			if ( n新 == TJAPlayer3.ConfigIni.nGlobalOffsetMs )
+				return false;
+			Trace.TraceInformation( "ポーズメニューで全体オフセットを変えました。({0} → {1} ms)", TJAPlayer3.ConfigIni.nGlobalOffsetMs, n新 );
+			TJAPlayer3.ConfigIni.nGlobalOffsetMs = n新;
+			return true;
 		}
 
 		// メソッド
@@ -54,6 +66,8 @@ namespace TJAPlayer3
             this.CAct演奏PauseMenuMain();
 			CActSelectPopupMenu.b選択した = false;
 			this.bやり直しを選択した = false;
+			this.bオフセットを変えた = false;
+			this.b特訓で止めていた = false;
 			base.tActivatePopupMenu( einst );
 		}
 		//public void tDeativatePopupMenu()
@@ -70,7 +84,8 @@ namespace TJAPlayer3
                 if( sw.ElapsedMilliseconds > 1500 )
                 {
                     TJAPlayer3.stage演奏ドラム画面.bPAUSE = false;
-                    TJAPlayer3.stage演奏ドラム画面.t演奏やりなおし();
+                    TJAPlayer3.stage演奏ドラム画面.t演奏やりなおし( this.bオフセットを変えた );
+                    this.bオフセットを変えた = false;
 
 	    		    this.tDeativatePopupMenu();
                     this.sw.Reset();
@@ -80,22 +95,37 @@ namespace TJAPlayer3
 
 		public override void tEnter押下Main( int nSortOrder )
 		{
-            switch ( n現在の選択行 )
+            // Dan では「やり直し」が無く行がずれるので、行番号ではなく項目そのもので見分ける。
+            CItemBase item = ( n現在の選択行 >= 0 && n現在の選択行 < this.l項目.Count ) ? this.l項目[ n現在の選択行 ] : null;
+            EOrder eOrder =
+                item == this.item続ける ? EOrder.Continue :
+                ( item != null && item == this.itemやり直し ) ? EOrder.Redoing :
+                item == this.item演奏中止 ? EOrder.Return :
+                EOrder.Default;   // 全体オフセット（決定で編集の開始・終了。基底クラスが処理する）
+
+            switch ( eOrder )
             {
-				case (int) EOrder.Continue:
-                    TJAPlayer3.stage演奏ドラム画面.bPAUSE = false;
+				case EOrder.Continue:
+                    // 特訓モード（作譜支援）で止めていたときは、止めたままメニューだけ閉じる。
+                    // 開いたときに止め直した分（タイマ）だけ戻し、音と動画は触らない。
+                    if ( !this.b特訓で止めていた )
+                        TJAPlayer3.stage演奏ドラム画面.bPAUSE = false;
 
                     CSound管理.rc演奏用タイマ.t再開();
 					TJAPlayer3.Timer.t再開();
-					TJAPlayer3.DTX.t全チップの再生再開();
-                    TJAPlayer3.stage演奏ドラム画面.actAVI.tPauseControl();
+                    if ( !this.b特訓で止めていた )
+                    {
+					    TJAPlayer3.DTX.t全チップの再生再開();
+                        TJAPlayer3.stage演奏ドラム画面.actAVI.tPauseControl();
+                    }
 					CActSelectPopupMenu.b選択した = true;
 					this.tDeativatePopupMenu();
 					break;
 
-				case (int) EOrder.Redoing:
+				case EOrder.Redoing:
 					if (TJAPlayer3.stage選曲.n確定された曲の難易度[0] != (int)Difficulty.Dan)
 					{
+						this.bオフセットを変えた = this.tオフセットを確定する();
 						this.bやり直しを選択した = true;
 						CActSelectPopupMenu.b選択した = true;
 					}
@@ -109,7 +139,9 @@ namespace TJAPlayer3
 					}
 					break;
 
-				case (int) EOrder.Return:
+				case EOrder.Return:
+					// 選曲画面に戻る。次に譜面を読むときから新しいオフセットが効く。
+					this.tオフセットを確定する();
                     CSound管理.rc演奏用タイマ.t再開();
 					TJAPlayer3.Timer.t再開();
                     TJAPlayer3.stage演奏ドラム画面.t演奏中止();
@@ -162,9 +194,14 @@ namespace TJAPlayer3
 
 		#region [ private ]
 		//-----------------
-		private int nCurrentTarget = 0;
-		private int nCurrentConfigSet = 0;
-		private List<List<List<CItemBase>>> lci;
+		private List<CItemBase> l項目;
+		private CItemBase item続ける;
+		private CItemBase itemやり直し;
+		private CItemBase item演奏中止;
+		private CItemInteger itemオフセット;
+		private bool bオフセットを変えた;
+		/// <summary>開いたとき、特訓モード（作譜支援）の Space で止めていたか。開いた側が立てる。</summary>
+		public bool b特訓で止めていた;
 		private enum EOrder : int
 		{
 			Continue,
